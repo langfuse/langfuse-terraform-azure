@@ -139,6 +139,8 @@ variable "redis_version" {
   description = "Version of Azure Cache for Redis"
   type        = string
   default     = "7"
+  // Azure enables Redis >= 6.2 only on Enterprise https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-how-to-upgrade#scope-of-availability
+  // Bullmq requires >= 6.2 https://docs.bullmq.io/guide/redis-tm-compatibility
 }
 
 variable "app_gateway_capacity" {
