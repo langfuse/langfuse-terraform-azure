@@ -120,7 +120,7 @@ variable "postgres_storage_mb" {
 variable "redis_sku_name" {
   description = "SKU name for Azure Cache for Redis"
   type        = string
-  default     = "Basic"
+  default     = "Enterprise"
 }
 
 variable "redis_family" {
@@ -133,6 +133,12 @@ variable "redis_capacity" {
   description = "Capacity of Azure Cache for Redis"
   type        = number
   default     = 1
+}
+
+variable "redis_version" {
+  description = "Version of Azure Cache for Redis"
+  type        = string
+  default     = "7"
 }
 
 variable "app_gateway_capacity" {
