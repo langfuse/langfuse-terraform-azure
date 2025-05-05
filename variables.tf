@@ -117,10 +117,22 @@ variable "postgres_storage_mb" {
   default     = 32768
 }
 
-variable "redis_sku_name" {
-  description = "SKU name for Azure Cache for Redis"
+variable "use_redis_enterprise" {
+  description = "Whether to use Redis Enterprise Cluster instead of standard Redis Cache"
+  type        = bool
+  default     = true
+}
+
+variable "redis_enterprise_sku" {
+  description = "SKU name for Azure Redis Enterprise Cluster (only used when use_redis_enterprise is true)"
   type        = string
-  default     = "Enterprise"
+  default     = "Enterprise_E10"
+}
+
+variable "redis_sku_name" {
+  description = "SKU name for Azure Cache for Redis (only used when use_redis_enterprise is false)"
+  type        = string
+  default     = "Basic"
 }
 
 variable "redis_family" {
@@ -132,15 +144,7 @@ variable "redis_family" {
 variable "redis_capacity" {
   description = "Capacity of Azure Cache for Redis"
   type        = number
-  default     = 1
-}
-
-variable "redis_version" {
-  description = "Version of Azure Cache for Redis"
-  type        = string
-  default     = "7"
-  // Azure enables Redis >= 6.2 only on Enterprise https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-how-to-upgrade#scope-of-availability
-  // Bullmq requires >= 6.2 https://docs.bullmq.io/guide/redis-tm-compatibility
+  default     = 2
 }
 
 variable "app_gateway_capacity" {

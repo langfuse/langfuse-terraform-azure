@@ -45,9 +45,14 @@ module "langfuse" {
   postgres_storage_mb    = 32768
   
   # Optional: Configure the cache
-  redis_sku_name = "Basic"
-  redis_family   = "C"
-  redis_capacity = 1
+  # redis_sku_name = "Basic"
+  # redis_family   = "C"
+  
+  # Optional: Use Redis Enterprise instead of standard Redis Cache
+  # Using redis standard will be cheaper, but may lead to unpredictable behaviour.
+  use_redis_enterprise = true
+  # redis_enterprise_sku = "Enterprise_E10"
+  # redis_capacity = 2
 
   # Optional: Configure Application Gateway
   app_gateway_capacity = 1
@@ -193,7 +198,9 @@ The module creates a complete Langfuse stack with the following Azure components
 | postgres_storage_mb               | Storage size in MB for PostgreSQL             | number | 32768                |    no    |
 | redis_sku_name                    | SKU name for Redis                            | string | "Basic"              |    no    |
 | redis_family                      | Cache family for Redis                        | string | "C"                  |    no    |
-| redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
+| redis_capacity                    | Capacity of Redis                             | number | 2                    |    no    |
+| use_redis_enterprise              | Whether to use Redis Enterprise Cluster       | bool   | true                 |    no    |
+| redis_enterprise_sku              | SKU name for Redis Enterprise                 | string | "Enterprise_E10"     |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
 
