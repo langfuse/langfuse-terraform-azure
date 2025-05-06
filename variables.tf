@@ -154,7 +154,7 @@ variable "app_gateway_capacity" {
 }
 
 variable "use_ddos_protection" {
-  description = "Wheter or not to use a DDoS protection plan"
+  description = "Whether or not to use a DDoS protection plan"
   type        = bool
   default     = true
 }
