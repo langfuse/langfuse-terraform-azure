@@ -117,8 +117,20 @@ variable "postgres_storage_mb" {
   default     = 32768
 }
 
+variable "use_redis_enterprise" {
+  description = "Whether to use Redis Enterprise Cluster instead of standard Redis Cache"
+  type        = bool
+  default     = true
+}
+
+variable "redis_enterprise_sku" {
+  description = "SKU name for Azure Redis Enterprise Cluster (only used when use_redis_enterprise is true)"
+  type        = string
+  default     = "Enterprise_E10"
+}
+
 variable "redis_sku_name" {
-  description = "SKU name for Azure Cache for Redis"
+  description = "SKU name for Azure Cache for Redis (only used when use_redis_enterprise is false)"
   type        = string
   default     = "Basic"
 }
@@ -132,7 +144,7 @@ variable "redis_family" {
 variable "redis_capacity" {
   description = "Capacity of Azure Cache for Redis"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "app_gateway_capacity" {
@@ -142,7 +154,7 @@ variable "app_gateway_capacity" {
 }
 
 variable "use_ddos_protection" {
-  description = "Wheter or not to use a DDoS protection plan"
+  description = "Whether or not to use a DDoS protection plan"
   type        = bool
   default     = true
 }

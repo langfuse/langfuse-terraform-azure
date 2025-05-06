@@ -26,8 +26,8 @@ clickhouse:
     existingSecretKey: clickhouse-password
 redis:
   deploy: false
-  host: ${azurerm_redis_cache.this.name}.redis.cache.windows.net
-  port: 6380
+  host: ${local.globally_unique_prefix}${var.name}.${var.location}.${var.use_redis_enterprise ? "redisenterprise" : "redis"}.cache.azure.net
+  port: ${var.use_redis_enterprise ? 10000 : 6380}
   tls:
     enabled: true
   auth:
@@ -93,7 +93,7 @@ resource "kubernetes_secret" "langfuse" {
   }
 
   data = {
-    "redis-password"      = azurerm_redis_cache.this.primary_access_key
+    "redis-password"      = var.use_redis_enterprise ? azurerm_redis_enterprise_database.this[0].primary_access_key : azurerm_redis_cache.this[0].primary_access_key
     "postgres-password"   = azurerm_postgresql_flexible_server.this.administrator_password
     "storage-access-key"  = azurerm_storage_account.this.primary_access_key
     "salt"                = random_bytes.salt.base64
