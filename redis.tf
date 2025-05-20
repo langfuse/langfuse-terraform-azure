@@ -38,7 +38,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
 
 # Add A record for the Redis cache's private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = var.use_redis_enterprise ? azurerm_redis_enterprise_cluster.this[0].name : azurerm_redis_cache.this[0].name
+  name                = var.use_redis_enterprise ? "${azurerm_redis_enterprise_cluster.this[0].name}.${azurerm_storage_account.this.location}" : azurerm_redis_cache.this[0].name
   zone_name           = azurerm_private_dns_zone.redis.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300

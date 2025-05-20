@@ -26,7 +26,7 @@ clickhouse:
     existingSecretKey: clickhouse-password
 redis:
   deploy: false
-  host: ${local.globally_unique_prefix}${var.name}.${var.location}.${var.use_redis_enterprise ? "redisenterprise" : "redis"}.cache.azure.net
+  host: ${var.use_redis_enterprise ? "${azurerm_redis_enterprise_cluster.this[0].name}.${azurerm_storage_account.this.location}.redisenterprise.cache.azure.net" : "${azurerm_redis_cache.this[0].name}.redis.cache.windows.net"}
   port: ${var.use_redis_enterprise ? 10000 : 6380}
   tls:
     enabled: true
