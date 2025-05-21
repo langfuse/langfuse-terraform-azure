@@ -19,4 +19,8 @@ resource "azurerm_redis_enterprise_database" "this" {
   client_protocol           = "Encrypted"
   eviction_policy           = "NoEviction"
   port                      = 10000
+  clustering_policy         = "EnterpriseCluster"
+  module {
+    name = "RedisJSON"
+  }
 }
