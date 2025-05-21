@@ -15,45 +15,45 @@ resource "azurerm_key_vault" "this" {
   sku_name                    = "standard"
   purge_protection_enabled    = true
   soft_delete_retention_days  = 7
-  enabled_for_disk_encryption = true
+}
 
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
+resource "azurerm_key_vault_access_policy" "this" {
+  key_vault_id = azurerm_key_vault.this.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
 
-    certificate_permissions = [
-      "Create",
-      "Delete",
-      "DeleteIssuers",
-      "Get",
-      "GetIssuers",
-      "Import",
-      "List",
-      "ListIssuers",
-      "ManageContacts",
-      "ManageIssuers",
-      "SetIssuers",
-      "Update",
-    ]
+  certificate_permissions = [
+    "Create",
+    "Delete",
+    "DeleteIssuers",
+    "Get",
+    "GetIssuers",
+    "Import",
+    "List",
+    "ListIssuers",
+    "ManageContacts",
+    "ManageIssuers",
+    "SetIssuers",
+    "Update",
+  ]
 
-    key_permissions = [
-      "Create",
-      "Delete",
-      "Get",
-      "Import",
-      "List",
-      "Update",
-    ]
+  key_permissions = [
+    "Create",
+    "Delete",
+    "Get",
+    "Import",
+    "List",
+    "Update",
+  ]
 
-    secret_permissions = [
-      "Delete",
-      "Get",
-      "List",
-      "Purge",
-      "Recover",
-      "Set",
-    ]
-  }
+  secret_permissions = [
+    "Delete",
+    "Get",
+    "List",
+    "Purge",
+    "Recover",
+    "Set",
+  ]
 }
 
 # Add Private Endpoint for Key Vault
