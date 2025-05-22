@@ -1,3 +1,4 @@
+# Redis subnet configuration
 resource "azurerm_subnet" "redis" {
   name                 = "redis"
   resource_group_name  = azurerm_resource_group.this.name
@@ -14,17 +15,19 @@ resource "azurerm_private_endpoint" "redis" {
 
   private_service_connection {
     name                           = "${var.name}-redis"
-    private_connection_resource_id = azurerm_redis_cache.this.id
+    private_connection_resource_id = var.use_redis_enterprise ? azurerm_redis_enterprise_cluster.this[0].id : azurerm_redis_cache.this[0].id
     is_manual_connection           = false
-    subresource_names              = ["redisCache"]
+    subresource_names              = var.use_redis_enterprise ? ["redisEnterprise"] : ["redisCache"]
   }
 }
 
+# DNS zone for Redis private endpoint
 resource "azurerm_private_dns_zone" "redis" {
-  name                = "privatelink.redis.cache.windows.net"
+  name                = var.use_redis_enterprise ? "privatelink.redisenterprise.cache.azure.net" : "privatelink.redis.cache.windows.net"
   resource_group_name = azurerm_resource_group.this.name
 }
 
+# Link the private DNS zone to the virtual network
 resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
   name                  = "${var.name}-redis"
   resource_group_name   = azurerm_resource_group.this.name
@@ -35,28 +38,9 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
 
 # Add A record for the Redis cache's private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = azurerm_redis_cache.this.name
+  name                = var.use_redis_enterprise ? "${azurerm_redis_enterprise_cluster.this[0].name}.${azurerm_storage_account.this.location}" : azurerm_redis_cache.this[0].name
   zone_name           = azurerm_private_dns_zone.redis.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300
   records             = [azurerm_private_endpoint.redis.private_service_connection[0].private_ip_address]
-}
-
-resource "azurerm_redis_cache" "this" {
-  name                          = "${local.globally_unique_prefix}${var.name}"
-  location                      = var.location
-  resource_group_name           = azurerm_resource_group.this.name
-  capacity                      = var.redis_capacity
-  family                        = var.redis_family
-  sku_name                      = var.redis_sku_name
-  minimum_tls_version           = "1.2"
-  public_network_access_enabled = false
-
-  redis_configuration {
-    maxmemory_policy = "noeviction"
-  }
-
-  tags = {
-    application = local.tag_name
-  }
 }

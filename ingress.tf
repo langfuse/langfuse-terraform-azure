@@ -213,6 +213,7 @@ resource "azurerm_application_gateway" "this" {
       http_listener,
       probe,
       request_routing_rule,
+      redirect_configuration,
       frontend_port,
     ]
   }

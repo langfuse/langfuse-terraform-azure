@@ -45,15 +45,20 @@ module "langfuse" {
   postgres_storage_mb    = 32768
   
   # Optional: Configure the cache
-  redis_sku_name = "Basic"
-  redis_family   = "C"
-  redis_capacity = 1
+  # redis_sku_name = "Basic"
+  # redis_family   = "C"
+  
+  # Optional: Use Redis Enterprise instead of standard Redis Cache
+  # Using redis standard will be cheaper, but may lead to unpredictable behaviour.
+  use_redis_enterprise = true
+  # redis_enterprise_sku = "Enterprise_E10"
+  # redis_capacity = 2
 
   # Optional: Configure Application Gateway
   app_gateway_capacity = 1
 
   # Optional: Security features
-  use_encryption_key = false
+  use_encryption_key = true
   use_ddos_protection = true
 }
 
@@ -169,33 +174,35 @@ The module creates a complete Langfuse stack with the following Azure components
 
 ## Inputs
 
-| Name                              | Description                                   | Type   | Default              | Required |
-|-----------------------------------|-----------------------------------------------|--------|----------------------|:--------:|
-| name                              | Name prefix for resources                     | string | "langfuse"           |    no    |
-| domain                            | Domain name used for resource naming          | string | n/a                  |   yes    |
-| location                          | Azure region to deploy resources              | string | "westeurope"         |    no    |
-| virtual_network_address_prefix    | VNET address prefix                           | string | "10.224.0.0/12"      |    no    |
-| aks_subnet_address_prefix         | AKS subnet address prefix                     | string | "10.224.0.0/16"      |    no    |
-| app_gateway_subnet_address_prefix | Application Gateway subnet address prefix     | string | "10.225.0.0/16"      |    no    |
-| db_subnet_address_prefix          | Database subnet address prefix                | string | "10.226.0.0/24"      |    no    |
-| redis_subnet_address_prefix       | Redis subnet address prefix                   | string | "10.226.1.0/24"      |    no    |
-| storage_subnet_address_prefix     | Storage subnet address prefix                 | string | "10.226.2.0/24"      |    no    |
-| kubernetes_version                | Kubernetes version for AKS cluster            | string | "1.32"               |    no    |
-| aks_service_cidr                  | Network range used by Kubernetes service      | string | "192.168.0.0/20"     |    no    |
-| aks_dns_service_ip                | IP address for cluster service discovery      | string | "192.168.0.10"       |    no    |
-| use_encryption_key                | Whether to use encryption key for credentials | bool   | false                |    no    |
-| node_pool_vm_size                 | VM size for AKS node pool                     | string | "Standard_D2s_v6"    |    no    |
-| node_pool_min_count               | Minimum number of nodes in AKS node pool      | number | 2                    |    no    |
-| node_pool_max_count               | Maximum number of nodes in AKS node pool      | number | 10                   |    no    |
-| postgres_instance_count           | Number of PostgreSQL instances                | number | 2                    |    no    |
-| postgres_ha_mode                  | HA mode for PostgreSQL                        | string | "SameZone"           |    no    |
-| postgres_sku_name                 | SKU name for PostgreSQL                       | string | "GP_Standard_D2s_v3" |    no    |
-| postgres_storage_mb               | Storage size in MB for PostgreSQL             | number | 32768                |    no    |
-| redis_sku_name                    | SKU name for Redis                            | string | "Basic"              |    no    |
-| redis_family                      | Cache family for Redis                        | string | "C"                  |    no    |
-| redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
-| app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
-| use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
+| Name                              | Description                                                                                        | Type   | Default              | Required |
+|-----------------------------------|----------------------------------------------------------------------------------------------------|--------|----------------------|:--------:|
+| name                              | Name prefix for resources. Must be between 3 and 63 chars.                                         | string | "langfuse"           |    no    |
+| domain                            | Domain name used for resource naming. At most 24 chars excluding dots when concatenated with name. | string | n/a                  |   yes    |
+| location                          | Azure region to deploy resources                                                                   | string | "westeurope"         |    no    |
+| virtual_network_address_prefix    | VNET address prefix                                                                                | string | "10.224.0.0/12"      |    no    |
+| aks_subnet_address_prefix         | AKS subnet address prefix                                                                          | string | "10.224.0.0/16"      |    no    |
+| app_gateway_subnet_address_prefix | Application Gateway subnet address prefix                                                          | string | "10.225.0.0/16"      |    no    |
+| db_subnet_address_prefix          | Database subnet address prefix                                                                     | string | "10.226.0.0/24"      |    no    |
+| redis_subnet_address_prefix       | Redis subnet address prefix                                                                        | string | "10.226.1.0/24"      |    no    |
+| storage_subnet_address_prefix     | Storage subnet address prefix                                                                      | string | "10.226.2.0/24"      |    no    |
+| kubernetes_version                | Kubernetes version for AKS cluster                                                                 | string | "1.32"               |    no    |
+| aks_service_cidr                  | Network range used by Kubernetes service                                                           | string | "192.168.0.0/20"     |    no    |
+| aks_dns_service_ip                | IP address for cluster service discovery                                                           | string | "192.168.0.10"       |    no    |
+| use_encryption_key                | Whether to use encryption key for credentials                                                      | bool   | true                 |    no    |
+| node_pool_vm_size                 | VM size for AKS node pool                                                                          | string | "Standard_D2s_v6"    |    no    |
+| node_pool_min_count               | Minimum number of nodes in AKS node pool                                                           | number | 2                    |    no    |
+| node_pool_max_count               | Maximum number of nodes in AKS node pool                                                           | number | 10                   |    no    |
+| postgres_instance_count           | Number of PostgreSQL instances                                                                     | number | 2                    |    no    |
+| postgres_ha_mode                  | HA mode for PostgreSQL                                                                             | string | "SameZone"           |    no    |
+| postgres_sku_name                 | SKU name for PostgreSQL                                                                            | string | "GP_Standard_D2s_v3" |    no    |
+| postgres_storage_mb               | Storage size in MB for PostgreSQL                                                                  | number | 32768                |    no    |
+| redis_sku_name                    | SKU name for Redis                                                                                 | string | "Basic"              |    no    |
+| redis_family                      | Cache family for Redis                                                                             | string | "C"                  |    no    |
+| redis_capacity                    | Capacity of Redis                                                                                  | number | 2                    |    no    |
+| use_redis_enterprise              | Whether to use Redis Enterprise Cluster                                                            | bool   | true                 |    no    |
+| redis_enterprise_sku              | SKU name for Redis Enterprise                                                                      | string | "Enterprise_E10"     |    no    |
+| app_gateway_capacity              | Capacity for Application Gateway                                                                   | number | 1                    |    no    |
+| use_ddos_protection               | Whether to use DDoS protection                                                                     | bool   | true                 |    no    |
 
 ## Outputs
 

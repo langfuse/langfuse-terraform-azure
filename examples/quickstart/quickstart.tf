@@ -30,7 +30,7 @@ module "langfuse" {
   name = "langfuse"
 
   # Optional: Configure langfuse
-  use_encryption_key = false
+  use_encryption_key = true
 
   # Optional: Configure the Virtual Network
   virtual_network_address_prefix    = "10.224.0.0/12"
@@ -55,13 +55,11 @@ module "langfuse" {
   postgres_storage_mb     = 32768
 
   # Optional: Configure the cache
-  redis_sku_name = "Basic"
-  redis_family   = "C"
-  redis_capacity = 1
+  use_redis_enterprise = true
 
   # Optional: Configure Application Gateway
   app_gateway_capacity = 1
 
   # Optional: Security features
-  use_ddos_protection = true
+  use_ddos_protection = false
 }
