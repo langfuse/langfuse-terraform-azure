@@ -13,7 +13,7 @@ This module aims to provide a production-ready, secure, and scalable deployment 
 
 ```hcl
 module "langfuse" {
-  source = "github.com/langfuse/langfuse-terraform-azure?ref=0.1.1"
+  source = "github.com/langfuse/langfuse-terraform-azure?ref=0.1.2"
 
   domain              = "langfuse.example.com"
   location            = "westeurope"  # Optional: defaults to westeurope
@@ -57,7 +57,7 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "1.2.8"
+  langfuse_helm_chart_version = "1.2.15"
 }
 
 provider "kubernetes" {
@@ -199,7 +199,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy | string | "1.2.8"              |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy | string | "1.2.15"              |    no    |
 
 ## Outputs
 
