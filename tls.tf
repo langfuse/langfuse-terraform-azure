@@ -8,13 +8,13 @@ resource "random_string" "key_vault_postfix" {
 }
 
 resource "azurerm_key_vault" "this" {
-  name                        = "${local.globally_unique_prefix}${var.name}${random_string.key_vault_postfix.result}"
-  location                    = azurerm_resource_group.this.location
-  resource_group_name         = azurerm_resource_group.this.name
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  sku_name                    = "standard"
-  purge_protection_enabled    = true
-  soft_delete_retention_days  = 7
+  name                       = module.naming.key_vault.unique_name
+  location                   = azurerm_resource_group.this.location
+  resource_group_name        = azurerm_resource_group.this.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  purge_protection_enabled   = true
+  soft_delete_retention_days = 7
 }
 
 resource "azurerm_key_vault_access_policy" "this" {
@@ -58,7 +58,7 @@ resource "azurerm_key_vault_access_policy" "this" {
 
 # Add Private Endpoint for Key Vault
 resource "azurerm_private_endpoint" "key_vault" {
-  name                = "${var.name}-keyvault"
+  name                = "${module.naming.private_endpoint.name}-keyvault"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
   subnet_id           = azurerm_subnet.aks.id
@@ -94,7 +94,7 @@ resource "azurerm_private_dns_a_record" "key_vault" {
 }
 
 resource "azurerm_key_vault_certificate" "this" {
-  name         = var.name
+  name         = module.naming.key_vault_certificate.name
   key_vault_id = azurerm_key_vault.this.id
 
   certificate_policy {
