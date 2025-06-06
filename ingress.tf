@@ -16,7 +16,7 @@ EOT
 }
 
 resource "azurerm_subnet" "appgw" {
-  name                 = "appgw"
+  name                 = "${module.naming.subnet.name}-appgw"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.app_gateway_subnet_address_prefix]
@@ -24,7 +24,7 @@ resource "azurerm_subnet" "appgw" {
 
 
 resource "azurerm_network_security_group" "appgw" {
-  name                = "${var.name}-appgw"
+  name                = "${module.naming.network_security_group.name}-appgw"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
 }
@@ -96,7 +96,7 @@ resource "azurerm_subnet_network_security_group_association" "appgw" {
 
 # Create User Assigned Identity for Application Gateway
 resource "azurerm_user_assigned_identity" "appgw" {
-  name                = "${var.name}-appgw-identity"
+  name                = "${module.naming.user_assigned_identity.name}-appgw-identity"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
 }
@@ -115,7 +115,7 @@ resource "azurerm_key_vault_access_policy" "appgw" {
 
 # Enable Azure Application Gateway Ingress Controller
 resource "azurerm_application_gateway" "this" {
-  name                = var.name
+  name                = module.naming.application_gateway.name
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
 
@@ -219,7 +219,7 @@ resource "azurerm_application_gateway" "this" {
 }
 
 resource "azurerm_public_ip" "appgw" {
-  name                = "${var.name}-appgw"
+  name                = "${module.naming.public_ip.name}-appgw"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
   allocation_method   = "Static"
