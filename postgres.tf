@@ -17,7 +17,7 @@ resource "azurerm_subnet" "db" {
 }
 
 resource "azurerm_postgresql_flexible_server" "this" {
-  name                          = module.naming.postgresql_server.unique_name
+  name                          = module.naming.postgresql_server.name_unique
   resource_group_name           = azurerm_resource_group.this.name
   location                      = var.location
   version                       = "15"

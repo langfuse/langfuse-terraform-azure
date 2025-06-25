@@ -43,7 +43,7 @@ resource "azurerm_private_dns_a_record" "redis" {
 }
 
 resource "azurerm_redis_cache" "this" {
-  name                          = module.naming.redis_cache.unique_name
+  name                          = module.naming.redis_cache.name_unique
   location                      = var.location
   resource_group_name           = azurerm_resource_group.this.name
   capacity                      = var.redis_capacity
