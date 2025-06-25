@@ -82,7 +82,7 @@ resource "azurerm_role_assignment" "aks_agic_reader" {
 
 # Grant Contributor role on the Application Gateway to AGIC
 resource "azurerm_role_assignment" "aks_agic_contributor" {
-  scope                = "${azurerm_resource_group.this.id}/providers/Microsoft.Network/applicationGateways/${var.name}"
+  scope                = azurerm_application_gateway.this.id
   role_definition_name = "Contributor"
   principal_id         = azurerm_kubernetes_cluster.this.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
 }
