@@ -13,7 +13,7 @@ This module aims to provide a production-ready, secure, and scalable deployment 
 
 ```hcl
 module "langfuse" {
-  source = "github.com/langfuse/langfuse-terraform-azure?ref=0.1.2"
+  source = "github.com/langfuse/langfuse-terraform-azure?ref=0.1.3"
 
   domain              = "langfuse.example.com"
   location            = "westeurope"  # Optional: defaults to westeurope
@@ -61,18 +61,18 @@ module "langfuse" {
 }
 
 provider "kubernetes" {
-  host                   = module.langfuse.aks_cluster_host
-  client_certificate     = base64decode(module.langfuse.aks_cluster_client_certificate)
-  client_key             = base64decode(module.langfuse.aks_cluster_client_key)
-  cluster_ca_certificate = base64decode(module.langfuse.aks_cluster_ca_certificate)
+  host                   = module.langfuse.cluster_host
+  client_certificate     = base64decode(module.langfuse.cluster_client_certificate)
+  client_key             = base64decode(module.langfuse.cluster_client_key)
+  cluster_ca_certificate = base64decode(module.langfuse.cluster_ca_certificate)
 }
 
 provider "helm" {
   kubernetes {
-    host                   = module.langfuse.aks_cluster_host
-    client_certificate     = base64decode(module.langfuse.aks_cluster_client_certificate)
-    client_key             = base64decode(module.langfuse.aks_cluster_client_key)
-    cluster_ca_certificate = base64decode(module.langfuse.aks_cluster_ca_certificate)
+    host                   = module.langfuse.cluster_host
+    client_certificate     = base64decode(module.langfuse.cluster_client_certificate)
+    client_key             = base64decode(module.langfuse.cluster_client_key)
+    cluster_ca_certificate = base64decode(module.langfuse.cluster_ca_certificate)
   }
 }
 ```

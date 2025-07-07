@@ -141,6 +141,8 @@ resource "azurerm_key_vault_certificate" "this" {
   }
 
   depends_on = [
+    azurerm_key_vault_access_policy.this, 
+    azurerm_key_vault_access_policy.appgw,
     azurerm_dns_zone.this
-  ]
+    ]
 }
