@@ -11,7 +11,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.langfuse.cluster_host
     client_certificate     = base64decode(module.langfuse.cluster_client_certificate)
     client_key             = base64decode(module.langfuse.cluster_client_key)
