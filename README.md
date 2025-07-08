@@ -53,11 +53,11 @@ module "langfuse" {
   app_gateway_capacity = 1
 
   # Optional: Security features
-  use_encryption_key = false
+  use_encryption_key = true
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "1.2.15"
+  langfuse_helm_chart_version = "1.3.1"
 }
 
 provider "kubernetes" {
@@ -68,7 +68,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.langfuse.cluster_host
     client_certificate     = base64decode(module.langfuse.cluster_client_certificate)
     client_key             = base64decode(module.langfuse.cluster_client_key)
@@ -186,7 +186,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | kubernetes_version                | Kubernetes version for AKS cluster            | string | "1.32"               |    no    |
 | aks_service_cidr                  | Network range used by Kubernetes service      | string | "192.168.0.0/20"     |    no    |
 | aks_dns_service_ip                | IP address for cluster service discovery      | string | "192.168.0.10"       |    no    |
-| use_encryption_key                | Whether to use encryption key for credentials | bool   | false                |    no    |
+| use_encryption_key                | Whether to use encryption key for credentials | bool   | true                 |    no    |
 | node_pool_vm_size                 | VM size for AKS node pool                     | string | "Standard_D2s_v6"    |    no    |
 | node_pool_min_count               | Minimum number of nodes in AKS node pool      | number | 2                    |    no    |
 | node_pool_max_count               | Maximum number of nodes in AKS node pool      | number | 10                   |    no    |
@@ -199,7 +199,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy | string | "1.2.15"              |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "1.3.1"              |    no    |
 
 ## Outputs
 
