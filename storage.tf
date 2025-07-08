@@ -1,5 +1,5 @@
 resource "azurerm_subnet" "storage" {
-  name                 = "storage"
+  name                 = "${module.naming.subnet.name}-storage"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.storage_subnet_address_prefix]
@@ -13,7 +13,7 @@ resource "azurerm_subnet_nat_gateway_association" "storage" {
 }
 
 resource "azurerm_storage_account" "this" {
-  name                     = "${local.globally_unique_prefix}${var.name}"
+  name                     = replace(module.naming.storage_account.name_unique, "-", "")
   resource_group_name      = azurerm_resource_group.this.name
   location                 = azurerm_resource_group.this.location
   account_tier             = "Standard"
@@ -30,13 +30,13 @@ resource "azurerm_storage_account" "this" {
 }
 
 resource "azurerm_storage_container" "this" {
-  name                  = var.name
+  name                  = module.naming.storage_container.name
   storage_account_id    = azurerm_storage_account.this.id
   container_access_type = "private"
 }
 
 resource "azurerm_private_endpoint" "storage" {
-  name                = "${var.name}-storage"
+  name                = "${module.naming.private_endpoint.name}-storage"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
   subnet_id           = azurerm_subnet.aks.id

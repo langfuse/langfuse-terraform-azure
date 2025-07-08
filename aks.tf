@@ -1,5 +1,5 @@
 resource "azurerm_subnet" "aks" {
-  name                 = "aks"
+  name                 = "${module.naming.subnet.name}-aks"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.aks_subnet_address_prefix]
@@ -12,7 +12,7 @@ resource "azurerm_subnet_nat_gateway_association" "aks" {
 }
 
 resource "azurerm_user_assigned_identity" "aks" {
-  name                = "${var.name}-aks"
+  name                = "${module.naming.user_assigned_identity.name}-aks"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
 }
@@ -24,7 +24,7 @@ resource "azurerm_role_assignment" "aks_network" {
 }
 
 resource "azurerm_kubernetes_cluster" "this" {
-  name                = var.name
+  name                = module.naming.kubernetes_cluster.name
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
   dns_prefix          = var.name
@@ -82,7 +82,7 @@ resource "azurerm_role_assignment" "aks_agic_reader" {
 
 # Grant Contributor role on the Application Gateway to AGIC
 resource "azurerm_role_assignment" "aks_agic_contributor" {
-  scope                = "${azurerm_resource_group.this.id}/providers/Microsoft.Network/applicationGateways/${var.name}"
+  scope                = azurerm_application_gateway.this.id
   role_definition_name = "Contributor"
   principal_id         = azurerm_kubernetes_cluster.this.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
 }
@@ -96,7 +96,7 @@ resource "azurerm_role_assignment" "agic_identity_operator" {
 
 
 resource "azurerm_network_security_group" "aks" {
-  name                = "${var.name}-aks"
+  name                = "${module.naming.network_security_group.name}-aks"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
 
