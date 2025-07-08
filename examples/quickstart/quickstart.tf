@@ -30,7 +30,7 @@ module "langfuse" {
   name = "langfuse"
 
   # Optional: Configure langfuse
-  use_encryption_key = false
+  use_encryption_key = true
 
   # Optional: Configure the Virtual Network
   virtual_network_address_prefix    = "10.224.0.0/12"
@@ -66,5 +66,5 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "1.2.15"
+  langfuse_helm_chart_version = "1.3.1"
 }
