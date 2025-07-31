@@ -62,6 +62,29 @@ langfuse:
   - name: LANGFUSE_USE_AZURE_BLOB
     value: "true" 
 EOT
+  additional_env_values = length(var.additional_env) == 0 ? "" : <<EOT
+langfuse:
+  additionalEnv:
+%{for env in var.additional_env}
+  - name: ${env.name}
+%{if env.value != null}
+    value: "${env.value}"
+%{endif}
+%{if env.valueFrom != null}
+    valueFrom:
+%{if env.valueFrom.secretKeyRef != null}
+      secretKeyRef:
+        name: ${env.valueFrom.secretKeyRef.name}
+        key: ${env.valueFrom.secretKeyRef.key}
+%{endif}
+%{if env.valueFrom.configMapKeyRef != null}
+      configMapKeyRef:
+        name: ${env.valueFrom.configMapKeyRef.name}
+        key: ${env.valueFrom.configMapKeyRef.key}
+%{endif}
+%{endif}
+%{endfor}
+EOT
 }
 
 resource "kubernetes_namespace" "langfuse" {
@@ -114,6 +137,7 @@ resource "helm_release" "langfuse" {
   values = [
     local.langfuse_values,
     local.ingress_values,
-    local.encryption_values
+    local.encryption_values,
+    local.additional_env_values
   ]
 }

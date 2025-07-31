@@ -150,5 +150,31 @@ variable "use_ddos_protection" {
 variable "langfuse_helm_chart_version" {
   description = "Version of the Langfuse Helm chart to deploy"
   type        = string
-  default     = "1.3.1"
+  default     = "1.3.3"
+}
+
+variable "additional_env" {
+  description = "Additional environment variables to pass to the Langfuse deployment"
+  type = list(object({
+    name  = string
+    value = optional(string)
+    valueFrom = optional(object({
+      secretKeyRef = optional(object({
+        name = string
+        key  = string
+      }))
+      configMapKeyRef = optional(object({
+        name = string
+        key  = string
+      }))
+    }))
+  }))
+  default = []
+
+  validation {
+    condition = alltrue([
+      for env in var.additional_env : (env.value != null) != (env.valueFrom != null)
+    ])
+    error_message = "Each environment variable must have either 'value' or 'valueFrom' specified, but not both."
+  }
 }
