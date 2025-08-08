@@ -19,6 +19,7 @@ resource "azurerm_storage_account" "this" {
   account_tier             = "Standard"
   account_replication_type = "GRS"
   min_tls_version          = "TLS1_2"
+  public_network_access_enabled = false
 
   blob_properties {
     versioning_enabled = true
@@ -26,6 +27,11 @@ resource "azurerm_storage_account" "this" {
     container_delete_retention_policy {
       days = 7
     }
+  }
+
+  network_rules {
+    default_action             = "Deny"
+    virtual_network_subnet_ids = [azurerm_subnet.storage.id]
   }
 }
 
