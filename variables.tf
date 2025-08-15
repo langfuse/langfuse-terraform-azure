@@ -150,7 +150,7 @@ variable "use_ddos_protection" {
 variable "langfuse_helm_chart_version" {
   description = "Version of the Langfuse Helm chart to deploy"
   type        = string
-  default     = "1.3.4"
+  default     = "1.4.0"
 }
 
 variable "additional_env" {
