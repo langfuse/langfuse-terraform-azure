@@ -214,6 +214,8 @@ resource "azurerm_application_gateway" "this" {
       probe,
       request_routing_rule,
       frontend_port,
+      redirect_configuration,
+      ssl_certificate,
     ]
   }
 }
