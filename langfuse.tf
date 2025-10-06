@@ -1,5 +1,5 @@
 locals {
-  langfuse_values   = <<EOT
+  langfuse_values       = <<EOT
 langfuse:
   salt:
     secretKeyRef:
@@ -52,7 +52,7 @@ s3:
   mediaUpload:
     prefix: "media/"
 EOT
-  encryption_values = var.use_encryption_key == false ? "" : <<EOT
+  encryption_values     = var.use_encryption_key == false ? "" : <<EOT
 langfuse:
   encryptionKey:
     secretKeyRef:
