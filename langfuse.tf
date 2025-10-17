@@ -35,6 +35,7 @@ redis:
     existingSecretPasswordKey: redis-password
 s3:
   deploy: false
+  storageProvider: "azure"
   endpoint: https://${azurerm_storage_account.this.name}.blob.core.windows.net
   bucket: ${azurerm_storage_container.this.name}
   region: ${azurerm_storage_account.this.location}
@@ -58,9 +59,6 @@ langfuse:
     secretKeyRef:
       name: ${kubernetes_secret.langfuse.metadata[0].name}
       key: encryption-key
-  additionalEnv:
-  - name: LANGFUSE_USE_AZURE_BLOB
-    value: "true" 
 EOT
   additional_env_values = length(var.additional_env) == 0 ? "" : <<EOT
 langfuse:
