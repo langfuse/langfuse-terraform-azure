@@ -24,19 +24,22 @@ module "langfuse" {
   
   # Optional: Configure the Virtual Network
   virtual_network_address_prefix = "10.224.0.0/12"
-  aks_subnet_address_prefix     = "10.224.0.0/16"
-  app_gateway_subnet_address_prefix = "10.225.0.0/16"
-  db_subnet_address_prefix      = "10.226.0.0/24"
-  redis_subnet_address_prefix   = "10.226.1.0/24"
-  storage_subnet_address_prefix = "10.226.2.0/24"
+  aks_subnet_address_prefix      = "10.224.0.0/16"
+  db_subnet_address_prefix       = "10.226.0.0/24"
+  redis_subnet_address_prefix    = "10.226.1.0/24"
+  storage_subnet_address_prefix  = "10.226.2.0/24"
 
   # Optional: Configure the Kubernetes cluster
   kubernetes_version = "1.32"
   aks_service_cidr   = "192.168.0.0/20"
   aks_dns_service_ip = "192.168.0.10"
-  node_pool_vm_size  = "Standard_D8s_v6"
+  node_pool_vm_size   = "Standard_D8s_v6"
   node_pool_min_count = 2
   node_pool_max_count = 10
+
+  # Optional: Configure the internal ingress controller
+  ingress_controller_private_ip = "10.224.0.240"
+  ingress_nginx_chart_version   = "4.11.2"
 
   # Optional: Configure the database instances
   postgres_instance_count = 2
@@ -48,9 +51,6 @@ module "langfuse" {
   redis_sku_name = "Basic"
   redis_family   = "C"
   redis_capacity = 1
-
-  # Optional: Configure Application Gateway
-  app_gateway_capacity = 1
 
   # Optional: Security features
   use_encryption_key = true
@@ -103,25 +103,10 @@ provider "helm" {
 }
 ```
 
-2. Apply the DNS zone
+2. Apply the module:
 
 ```bash
 terraform init
-terraform apply --target module.langfuse.azurerm_dns_zone.this
-```
-
-3. Set up the Nameserver delegation on your DNS provider, likely using (check on your created DNS zone):
-
-```bash
-ns1-05.azure-dns.com.
-ns2-05.azure-dns.net.
-ns3-05.azure-dns.org.
-ns4-05.azure-dns.info.
-```
-
-4. Apply the full stack:
-
-```bash
 terraform apply
 ```
 
@@ -130,34 +115,28 @@ terraform apply
 The module creates a complete Langfuse stack with the following Azure components:
 
 - Resource Group for all resources
-- Virtual Network with dedicated subnets for:
-  - AKS cluster
-  - Application Gateway
+- Private virtual network with dedicated subnets for:
+  - AKS cluster nodes
   - PostgreSQL database
   - Redis cache
   - Storage account
-- Azure Kubernetes Service (AKS) cluster with:
+- Azure Kubernetes Service (AKS) cluster configured as a private cluster with:
   - System node pool
   - User node pool
   - Managed identities
-  - Network security groups
+  - Network security group on the worker subnet
+- Ingress based on the `ingress-nginx` Helm chart providing:
+  - An internal load balancer scoped to the AKS subnet
+  - Optional static private IP assignment
+  - Private DNS zone for the Langfuse endpoint
+- Access to Langfuse is only available through the virtual network (for example via VNet peering); no public IPs or public DNS records are created by the module
 - Azure Database for PostgreSQL Flexible Server with:
   - High availability configuration
-  - Private endpoint
+  - Private endpoint and DNS zone linkage
   - Network security rules
-- Azure Cache for Redis with:
-  - Private endpoint
-  - Network security rules
-- Azure Storage Account with:
-  - Blob storage
-  - Private endpoint
-  - Network security rules
-- Azure DNS Zone and Key Vault for TLS certificates
-- Azure Application Gateway for ingress with:
-  - Web Application Firewall (WAF)
-  - SSL termination
-  - Private endpoint
-- Azure Files CSI Driver for persistent storage
+- Azure Cache for Redis with private endpoint and DNS zone linkage
+- Azure Storage Account (Blob) with private endpoint and DNS zone linkage
+- Azure Key Vault with private endpoint storing Langfuse secrets and TLS material (the module provisions a self-signed certificate by default; supply your own by rotating the stored secrets)
 - Optional DDoS Protection Plan
 - Optional encryption key for LLM API credentials
 
@@ -182,51 +161,60 @@ The module creates a complete Langfuse stack with the following Azure components
 
 ## Resources
 
-| Name                                    | Type     |
-|-----------------------------------------|----------|
-| azurerm_kubernetes_cluster.this         | resource |
-| azurerm_postgresql_flexible_server.this | resource |
-| azurerm_redis_cache.this                | resource |
-| azurerm_storage_account.this            | resource |
-| azurerm_key_vault_certificate.this      | resource |
-| azurerm_dns_zone.this                   | resource |
-| azurerm_user_assigned_identity.aks      | resource |
-| azurerm_network_security_group.this     | resource |
-| azurerm_application_gateway.this        | resource |
-| azurerm_private_endpoint.this           | resource |
-| azurerm_ddos_protection_plan.this       | resource |
+| Name                                           | Type     |
+|------------------------------------------------|----------|
+| azurerm_kubernetes_cluster.this                | resource |
+| helm_release.ingress_nginx                    | resource |
+| helm_release.langfuse                         | resource |
+| azurerm_private_dns_zone.langfuse             | resource |
+| azurerm_private_dns_a_record.langfuse         | resource |
+| azurerm_postgresql_flexible_server.this       | resource |
+| azurerm_redis_cache.this                      | resource |
+| azurerm_storage_account.this                  | resource |
+| azurerm_key_vault.this                        | resource |
+| azurerm_key_vault_secret.ingress_certificate  | resource |
+| azurerm_key_vault_secret.ingress_private_key  | resource |
+| azurerm_private_endpoint.postgres             | resource |
+| azurerm_private_endpoint.redis                | resource |
+| azurerm_private_endpoint.storage              | resource |
+| azurerm_private_endpoint.key_vault            | resource |
+| azurerm_user_assigned_identity.aks            | resource |
+| azurerm_network_security_group.aks            | resource |
+| tls_self_signed_cert.ingress                  | resource |
+| tls_private_key.ingress                       | resource |
+| azurerm_ddos_protection_plan.this             | resource |
 
 ## Inputs
 
-| Name                              | Description                                   | Type   | Default              | Required |
-|-----------------------------------|-----------------------------------------------|--------|----------------------|:--------:|
-| name                              | Name prefix for resources                     | string | "langfuse"           |    no    |
-| domain                            | Domain name used for resource naming          | string | n/a                  |   yes    |
-| location                          | Azure region to deploy resources              | string | "westeurope"         |    no    |
-| virtual_network_address_prefix    | VNET address prefix                           | string | "10.224.0.0/12"      |    no    |
-| aks_subnet_address_prefix         | AKS subnet address prefix                     | string | "10.224.0.0/16"      |    no    |
-| app_gateway_subnet_address_prefix | Application Gateway subnet address prefix     | string | "10.225.0.0/16"      |    no    |
-| db_subnet_address_prefix          | Database subnet address prefix                | string | "10.226.0.0/24"      |    no    |
-| redis_subnet_address_prefix       | Redis subnet address prefix                   | string | "10.226.1.0/24"      |    no    |
-| storage_subnet_address_prefix     | Storage subnet address prefix                 | string | "10.226.2.0/24"      |    no    |
-| kubernetes_version                | Kubernetes version for AKS cluster            | string | "1.32"               |    no    |
-| aks_service_cidr                  | Network range used by Kubernetes service      | string | "192.168.0.0/20"     |    no    |
-| aks_dns_service_ip                | IP address for cluster service discovery      | string | "192.168.0.10"       |    no    |
-| use_encryption_key                | Whether to use encryption key for credentials | bool   | true                 |    no    |
-| node_pool_vm_size                 | VM size for AKS node pool                     | string | "Standard_D2s_v6"    |    no    |
-| node_pool_min_count               | Minimum number of nodes in AKS node pool      | number | 2                    |    no    |
-| node_pool_max_count               | Maximum number of nodes in AKS node pool      | number | 10                   |    no    |
-| postgres_instance_count           | Number of PostgreSQL instances                | number | 2                    |    no    |
-| postgres_ha_mode                  | HA mode for PostgreSQL                        | string | "SameZone"           |    no    |
-| postgres_sku_name                 | SKU name for PostgreSQL                       | string | "GP_Standard_D2s_v3" |    no    |
-| postgres_storage_mb               | Storage size in MB for PostgreSQL             | number | 32768                |    no    |
-| redis_sku_name                    | SKU name for Redis                            | string | "Basic"              |    no    |
-| redis_family                      | Cache family for Redis                        | string | "C"                  |    no    |
-| redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
-| app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
-| use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "1.5.7"              |    no    |
-| additional_env                    | Additional environment variables for Langfuse | list   | []                   |    no    |
+| Name                           | Description                                        | Type                     | Default             | Required |
+|--------------------------------|----------------------------------------------------|--------------------------|---------------------|:--------:|
+| name                           | Name prefix for resources                          | string                   | "langfuse"          |    no    |
+| domain                         | Domain name used for resource naming               | string                   | n/a                 |   yes    |
+| location                       | Azure region to deploy resources                   | string                   | "westeurope"        |    no    |
+| virtual_network_address_prefix | VNET address prefix                                | string                   | "10.224.0.0/12"     |    no    |
+| aks_subnet_address_prefix      | AKS subnet address prefix                          | string                   | "10.224.0.0/16"     |    no    |
+| db_subnet_address_prefix       | Database subnet address prefix                     | string                   | "10.226.0.0/24"     |    no    |
+| redis_subnet_address_prefix    | Redis subnet address prefix                        | string                   | "10.226.1.0/24"     |    no    |
+| storage_subnet_address_prefix  | Storage subnet address prefix                      | string                   | "10.226.2.0/24"     |    no    |
+| kubernetes_version             | Kubernetes version for AKS cluster                 | string                   | "1.32"              |    no    |
+| aks_service_cidr               | Network range used by Kubernetes service           | string                   | "192.168.0.0/20"    |    no    |
+| aks_dns_service_ip             | IP address for cluster service discovery           | string                   | "192.168.0.10"      |    no    |
+| ingress_controller_private_ip  | Optional static IP for the internal ingress LB     | string                   | ""                  |    no    |
+| ingress_nginx_chart_version    | Version of the ingress-nginx Helm chart            | string                   | "4.11.2"            |    no    |
+| use_encryption_key             | Whether to use encryption key for credentials      | bool                     | true                |    no    |
+| node_pool_vm_size              | VM size for AKS node pool                          | string                   | "Standard_D8s_v6"   |    no    |
+| node_pool_min_count            | Minimum number of nodes in AKS node pool           | number                   | 2                   |    no    |
+| node_pool_max_count            | Maximum number of nodes in AKS node pool           | number                   | 10                  |    no    |
+| postgres_instance_count        | Number of PostgreSQL instances                     | number                   | 2                   |    no    |
+| postgres_ha_mode               | HA mode for PostgreSQL                             | string                   | "SameZone"          |    no    |
+| postgres_sku_name              | SKU name for PostgreSQL                            | string                   | "GP_Standard_D2s_v3" |    no    |
+| postgres_storage_mb            | Storage size in MB for PostgreSQL                  | number                   | 32768               |    no    |
+| redis_sku_name                 | SKU name for Redis                                 | string                   | "Basic"             |    no    |
+| redis_family                   | Cache family for Redis                             | string                   | "C"                 |    no    |
+| redis_capacity                 | Capacity of Redis                                  | number                   | 1                   |    no    |
+| use_ddos_protection            | Whether to use DDoS protection                     | bool                     | true                |    no    |
+| langfuse_helm_chart_version    | Version of the Langfuse Helm chart to deploy       | string                   | "1.5.7"             |    no    |
+| additional_env                 | Additional environment variables for Langfuse      | list(object)             | []                  |    no    |
 
 ## Outputs
 
@@ -237,16 +225,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | cluster_client_certificate | The client certificate for the AKS cluster          |
 | cluster_client_key         | The client key for the AKS cluster                  |
 | cluster_ca_certificate     | The CA certificate for the AKS cluster              |
-| postgres_server_name       | The name of the PostgreSQL server                   |
-| postgres_server_fqdn       | The FQDN of the PostgreSQL server                   |
-| postgres_admin_username    | The administrator username of the PostgreSQL server |
-| postgres_admin_password    | The administrator password of the PostgreSQL server |
-| redis_host                 | The hostname of the Redis instance                  |
-| redis_ssl_port             | The SSL port of the Redis instance                  |
-| redis_primary_key          | The primary access key for the Redis instance       |
-| storage_account_name       | The name of the storage account                     |
-| storage_account_key        | The primary access key for the storage account      |
-| dns_name_servers           | The name servers for the DNS zone                   |
+| ingress_private_ip         | The private IP assigned to the internal ingress LB  |
 
 ## Support
 

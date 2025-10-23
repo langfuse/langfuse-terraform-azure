@@ -26,3 +26,8 @@ output "cluster_ca_certificate" {
   value       = azurerm_kubernetes_cluster.this.kube_config[0].cluster_ca_certificate
   sensitive   = true
 }
+
+output "ingress_private_ip" {
+  description = "The private IP address assigned to the internal ingress load balancer"
+  value       = data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip
+}

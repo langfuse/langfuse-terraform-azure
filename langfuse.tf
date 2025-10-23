@@ -1,5 +1,5 @@
 locals {
-  langfuse_values   = <<EOT
+  langfuse_values       = <<EOT
 langfuse:
   salt:
     secretKeyRef:
@@ -53,7 +53,25 @@ s3:
   mediaUpload:
     prefix: "media/"
 EOT
-  encryption_values = var.use_encryption_key == false ? "" : <<EOT
+  ingress_values        = <<EOT
+langfuse:
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+    - host: ${var.domain}
+      paths:
+      - path: /
+        pathType: Prefix
+    tls:
+    - hosts:
+      - ${var.domain}
+      secretName: ${kubernetes_secret.langfuse_tls.metadata[0].name}
+EOT
+  encryption_values     = var.use_encryption_key == false ? "" : <<EOT
 langfuse:
   encryptionKey:
     secretKeyRef:
@@ -89,6 +107,10 @@ resource "kubernetes_namespace" "langfuse" {
   metadata {
     name = "langfuse"
   }
+
+  depends_on = [
+    azurerm_kubernetes_cluster.this
+  ]
 }
 
 resource "random_bytes" "salt" {
@@ -122,6 +144,28 @@ resource "kubernetes_secret" "langfuse" {
     "clickhouse-password" = random_password.clickhouse_password.result
     "encryption-key"      = var.use_encryption_key ? random_bytes.encryption_key[0].hex : ""
   }
+
+  depends_on = [
+    kubernetes_namespace.langfuse
+  ]
+}
+
+resource "kubernetes_secret" "langfuse_tls" {
+  metadata {
+    name      = "langfuse-tls"
+    namespace = kubernetes_namespace.langfuse.metadata[0].name
+  }
+
+  type = "kubernetes.io/tls"
+
+  data = {
+    "tls.crt" = base64encode(tls_self_signed_cert.ingress.cert_pem)
+    "tls.key" = base64encode(tls_private_key.ingress.private_key_pem)
+  }
+
+  depends_on = [
+    kubernetes_namespace.langfuse
+  ]
 }
 
 resource "helm_release" "langfuse" {
@@ -137,5 +181,10 @@ resource "helm_release" "langfuse" {
     local.ingress_values,
     local.encryption_values,
     local.additional_env_values
+  ]
+
+  depends_on = [
+    helm_release.ingress_nginx,
+    kubernetes_secret.langfuse_tls
   ]
 }

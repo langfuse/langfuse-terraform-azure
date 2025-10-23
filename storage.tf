@@ -6,12 +6,6 @@ resource "azurerm_subnet" "storage" {
   service_endpoints    = ["Microsoft.Storage"]
 }
 
-# Associate NAT Gateway with storage subnet
-resource "azurerm_subnet_nat_gateway_association" "storage" {
-  subnet_id      = azurerm_subnet.storage.id
-  nat_gateway_id = azurerm_nat_gateway.this.id
-}
-
 resource "azurerm_storage_account" "this" {
   name                            = replace(module.naming.storage_account.name_unique, "-", "")
   resource_group_name             = azurerm_resource_group.this.name

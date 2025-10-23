@@ -1,12 +1,3 @@
-# Make sure to use a historic globally unique name, since they key vault is created with soft deletion
-resource "random_string" "key_vault_postfix" {
-  length  = 4
-  lower   = true
-  numeric = false
-  special = false
-  upper   = false
-}
-
 resource "azurerm_key_vault" "this" {
   name                       = module.naming.key_vault.name_unique
   location                   = azurerm_resource_group.this.location
@@ -93,56 +84,46 @@ resource "azurerm_private_dns_a_record" "key_vault" {
   records             = [azurerm_private_endpoint.key_vault.private_service_connection[0].private_ip_address]
 }
 
-resource "azurerm_key_vault_certificate" "this" {
-  name         = module.naming.key_vault_certificate.name
-  key_vault_id = azurerm_key_vault.this.id
+resource "tls_private_key" "ingress" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
 
-  certificate_policy {
-    issuer_parameters {
-      name = "Self"
-    }
+resource "tls_self_signed_cert" "ingress" {
+  private_key_pem       = tls_private_key.ingress.private_key_pem
+  validity_period_hours = 8760
 
-    key_properties {
-      exportable = true
-      key_size   = 2048
-      key_type   = "RSA"
-      reuse_key  = true
-    }
-
-    lifetime_action {
-      action {
-        action_type = "AutoRenew"
-      }
-
-      trigger {
-        days_before_expiry = 30
-      }
-    }
-
-    secret_properties {
-      content_type = "application/x-pkcs12"
-    }
-
-    x509_certificate_properties {
-      extended_key_usage = ["1.3.6.1.5.5.7.3.1"]
-
-      key_usage = [
-        "digitalSignature",
-        "keyEncipherment"
-      ]
-
-      subject            = "CN=${var.domain}"
-      validity_in_months = 12
-
-      subject_alternative_names {
-        dns_names = [var.domain]
-      }
-    }
+  subject {
+    common_name = var.domain
   }
 
+  allowed_uses = [
+    "digital_signature",
+    "key_encipherment",
+    "server_auth",
+  ]
+
+  dns_names = [var.domain]
+}
+
+resource "azurerm_key_vault_secret" "ingress_certificate" {
+  name         = "${var.name}-ingress-crt"
+  value        = tls_self_signed_cert.ingress.cert_pem
+  content_type = "application/x-pem-file"
+  key_vault_id = azurerm_key_vault.this.id
+
   depends_on = [
-    azurerm_key_vault_access_policy.this, 
-    azurerm_key_vault_access_policy.appgw,
-    azurerm_dns_zone.this
-    ]
+    azurerm_key_vault_access_policy.this
+  ]
+}
+
+resource "azurerm_key_vault_secret" "ingress_private_key" {
+  name         = "${var.name}-ingress-key"
+  value        = tls_private_key.ingress.private_key_pem
+  content_type = "application/x-pem-file"
+  key_vault_id = azurerm_key_vault.this.id
+
+  depends_on = [
+    azurerm_key_vault_access_policy.this
+  ]
 }

@@ -1,14 +1,26 @@
-# Add DNS zone
-resource "azurerm_dns_zone" "this" {
+resource "azurerm_private_dns_zone" "langfuse" {
   name                = var.domain
   resource_group_name = azurerm_resource_group.this.name
 }
 
-# Add A record for the domain pointing to the Application Gateway
-resource "azurerm_dns_a_record" "app_gateway" {
-  name                = "@" # Create a record for the root domain
-  zone_name           = azurerm_dns_zone.this.name
+resource "azurerm_private_dns_zone_virtual_network_link" "langfuse" {
+  name                  = "${var.name}-langfuse"
+  resource_group_name   = azurerm_resource_group.this.name
+  private_dns_zone_name = azurerm_private_dns_zone.langfuse.name
+  virtual_network_id    = azurerm_virtual_network.this.id
+  registration_enabled  = false
+}
+
+resource "azurerm_private_dns_a_record" "langfuse" {
+  name                = "@"
+  zone_name           = azurerm_private_dns_zone.langfuse.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300
-  records             = [azurerm_public_ip.appgw.ip_address]
+  records = [
+    data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip
+  ]
+
+  depends_on = [
+    helm_release.ingress_nginx
+  ]
 }

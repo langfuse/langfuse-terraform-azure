@@ -33,12 +33,11 @@ module "langfuse" {
   use_encryption_key = true
 
   # Optional: Configure the Virtual Network
-  virtual_network_address_prefix    = "10.224.0.0/12"
-  aks_subnet_address_prefix         = "10.224.0.0/16"
-  app_gateway_subnet_address_prefix = "10.225.0.0/16"
-  db_subnet_address_prefix          = "10.226.0.0/24"
-  redis_subnet_address_prefix       = "10.226.1.0/24"
-  storage_subnet_address_prefix     = "10.226.2.0/24"
+  virtual_network_address_prefix = "10.224.0.0/12"
+  aks_subnet_address_prefix      = "10.224.0.0/16"
+  db_subnet_address_prefix       = "10.226.0.0/24"
+  redis_subnet_address_prefix    = "10.226.1.0/24"
+  storage_subnet_address_prefix  = "10.226.2.0/24"
 
   # Optional: Configure the Kubernetes cluster
   kubernetes_version  = "1.32"
@@ -47,6 +46,10 @@ module "langfuse" {
   node_pool_vm_size   = "Standard_D8s_v6"
   node_pool_min_count = 2
   node_pool_max_count = 10
+
+  # Optional: Configure the internal ingress controller
+  ingress_controller_private_ip = "10.224.0.240"
+  ingress_nginx_chart_version   = "4.11.2"
 
   # Optional: Configure the database instances
   postgres_instance_count = 2
@@ -58,9 +61,6 @@ module "langfuse" {
   redis_sku_name = "Basic"
   redis_family   = "C"
   redis_capacity = 1
-
-  # Optional: Configure Application Gateway
-  app_gateway_capacity = 1
 
   # Optional: Security features
   use_ddos_protection = true

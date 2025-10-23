@@ -27,12 +27,6 @@ variable "aks_subnet_address_prefix" {
   default     = "10.224.0.0/16"
 }
 
-variable "app_gateway_subnet_address_prefix" {
-  type        = string
-  description = "Subnet address prefix."
-  default     = "10.225.0.0/16"
-}
-
 variable "db_subnet_address_prefix" {
   description = "Subnet address prefix."
   type        = string
@@ -67,6 +61,18 @@ variable "aks_dns_service_ip" {
   type        = string
   description = "IP address within the Kubernetes service address range that will be used by cluster service discovery (kube-dns)."
   default     = "192.168.0.10"
+}
+
+variable "ingress_controller_private_ip" {
+  description = "Optional static private IP address for the internal ingress load balancer. Must reside in the AKS subnet if set."
+  type        = string
+  default     = ""
+}
+
+variable "ingress_nginx_chart_version" {
+  description = "Version of the ingress-nginx Helm chart to deploy."
+  type        = string
+  default     = "4.11.2"
 }
 
 variable "use_encryption_key" {
@@ -131,12 +137,6 @@ variable "redis_family" {
 
 variable "redis_capacity" {
   description = "Capacity of Azure Cache for Redis"
-  type        = number
-  default     = 1
-}
-
-variable "app_gateway_capacity" {
-  description = "Capacity for the Application Gateway"
   type        = number
   default     = 1
 }
