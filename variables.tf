@@ -178,3 +178,9 @@ variable "additional_env" {
     error_message = "Each environment variable must have either 'value' or 'valueFrom' specified, but not both."
   }
 }
+
+variable "ssl_certificate_secret_id" {
+  description = "Azure Key Vault secret ID for an existing SSL certificate. If provided, the module will use this certificate instead of creating a self-signed one. The Application Gateway managed identity must have access to this Key Vault."
+  type        = string
+  default     = null
+}
