@@ -41,3 +41,27 @@ resource "azurerm_nat_gateway_public_ip_association" "this" {
   nat_gateway_id       = azurerm_nat_gateway.this.id
   public_ip_address_id = azurerm_public_ip.nat_gateway.id
 }
+
+# Container Apps subnet
+resource "azurerm_subnet" "container_apps" {
+  name                 = "${module.naming.subnet.name}-container-apps"
+  resource_group_name  = azurerm_resource_group.this.name
+  virtual_network_name = azurerm_virtual_network.this.name
+  address_prefixes     = [var.container_apps_subnet_address_prefix]
+
+  delegation {
+    name = "container-apps-delegation"
+    service_delegation {
+      name = "Microsoft.App/environments"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+      ]
+    }
+  }
+}
+
+# Associate NAT Gateway with Container Apps subnet
+resource "azurerm_subnet_nat_gateway_association" "container_apps" {
+  subnet_id      = azurerm_subnet.container_apps.id
+  nat_gateway_id = azurerm_nat_gateway.this.id
+}
