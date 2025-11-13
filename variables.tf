@@ -5,8 +5,9 @@ variable "name" {
 }
 
 variable "domain" {
-  description = "Domain name used for resource naming"
+  description = "Domain name for custom domain (optional, uses Container Apps default domain if not set)"
   type        = string
+  default     = null
 }
 
 variable "location" {
@@ -31,18 +32,6 @@ variable "db_subnet_address_prefix" {
   description = "Subnet address prefix."
   type        = string
   default     = "10.226.0.0/24"
-}
-
-variable "redis_subnet_address_prefix" {
-  description = "Subnet address prefix."
-  type        = string
-  default     = "10.226.1.0/24"
-}
-
-variable "storage_subnet_address_prefix" {
-  description = "Subnet address prefix."
-  type        = string
-  default     = "10.226.2.0/24"
 }
 
 variable "use_encryption_key" {

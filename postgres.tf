@@ -83,7 +83,7 @@ resource "azurerm_private_endpoint" "postgres" {
   name                = "${module.naming.private_endpoint.name}-postgres"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
-  subnet_id           = azurerm_subnet.aks.id
+  subnet_id           = azurerm_subnet.container_apps.id
 
   private_service_connection {
     name                           = "${var.name}-postgres"

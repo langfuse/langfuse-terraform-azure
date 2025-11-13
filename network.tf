@@ -21,27 +21,6 @@ resource "azurerm_network_ddos_protection_plan" "this" {
   resource_group_name = azurerm_resource_group.this.name
 }
 
-# Add non-zonal NAT Gateway
-resource "azurerm_public_ip" "nat_gateway" {
-  name                = "${module.naming.public_ip.name}-nat-gw"
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
-resource "azurerm_nat_gateway" "this" {
-  name                = module.naming.nat_gateway.name
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  sku_name            = "Standard"
-}
-
-resource "azurerm_nat_gateway_public_ip_association" "this" {
-  nat_gateway_id       = azurerm_nat_gateway.this.id
-  public_ip_address_id = azurerm_public_ip.nat_gateway.id
-}
-
 # Container Apps subnet
 resource "azurerm_subnet" "container_apps" {
   name                 = "${module.naming.subnet.name}-container-apps"
@@ -58,10 +37,4 @@ resource "azurerm_subnet" "container_apps" {
       ]
     }
   }
-}
-
-# Associate NAT Gateway with Container Apps subnet
-resource "azurerm_subnet_nat_gateway_association" "container_apps" {
-  subnet_id      = azurerm_subnet.container_apps.id
-  nat_gateway_id = azurerm_nat_gateway.this.id
 }

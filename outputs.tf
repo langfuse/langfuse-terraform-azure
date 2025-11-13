@@ -61,8 +61,3 @@ output "storage_account_key" {
   value       = azurerm_storage_account.this.primary_access_key
   sensitive   = true
 }
-
-output "dns_name_servers" {
-  description = "The name servers for the DNS zone"
-  value       = azurerm_dns_zone.this.name_servers
-}

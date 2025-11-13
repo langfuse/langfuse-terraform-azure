@@ -50,7 +50,8 @@ resource "azurerm_container_app" "langfuse" {
 
       env {
         name  = "NEXTAUTH_URL"
-        value = "https://${var.domain}"
+        # If domain is not set, use a placeholder. After first deploy, update with actual Container App FQDN
+        value = var.domain != null ? "https://${var.domain}" : "https://placeholder.local"
       }
 
       env {

@@ -1,16 +1,9 @@
-resource "azurerm_subnet" "redis" {
-  name                 = "${module.naming.subnet.name}-redis"
-  resource_group_name  = azurerm_resource_group.this.name
-  virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = [var.redis_subnet_address_prefix]
-}
-
 # Add Private Endpoint for Redis
 resource "azurerm_private_endpoint" "redis" {
   name                = "${module.naming.private_endpoint.name}-redis"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
-  subnet_id           = azurerm_subnet.aks.id
+  subnet_id           = azurerm_subnet.container_apps.id
 
   private_service_connection {
     name                           = "${var.name}-redis"
