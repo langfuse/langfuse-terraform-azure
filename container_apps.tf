@@ -196,7 +196,7 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-url"
-    value = "clickhouse://default:${random_password.clickhouse_password.result}@clickhouse.internal.${azurerm_container_app_environment.this.default_domain}:8123/default"
+    value = "clickhouse://default:${random_password.clickhouse_password.result}@clickhouse:8123/default"
   }
 
   dynamic "secret" {
