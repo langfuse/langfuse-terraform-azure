@@ -18,7 +18,7 @@ resource "azurerm_container_app" "clickhouse" {
   template {
     container {
       name   = "clickhouse"
-      image  = "clickhouse/clickhouse-server:24.3-alpine"
+      image  = "clickhouse/clickhouse-server:latest-alpine"
       cpu    = 1.0
       memory = "2Gi"
 
