@@ -33,8 +33,34 @@ resource "azurerm_container_app" "clickhouse" {
       }
 
       env {
-        name        = "CLICKHOUSE_PASSWORD"
+        name  = "CLICKHOUSE_PASSWORD"
         secret_name = "clickhouse-password"
+      }
+
+      # Disable unnecessary listeners to avoid port conflicts
+      env {
+        name  = "CLICKHOUSE_HTTP_PORT"
+        value = "8123"
+      }
+
+      env {
+        name  = "CLICKHOUSE_INTERSERVER_HTTP_PORT"
+        value = "0"
+      }
+
+      env {
+        name  = "CLICKHOUSE_TCP_PORT"
+        value = "0"
+      }
+
+      env {
+        name  = "CLICKHOUSE_MYSQL_PORT"
+        value = "0"
+      }
+
+      env {
+        name  = "CLICKHOUSE_POSTGRESQL_PORT"
+        value = "0"
       }
     }
 
