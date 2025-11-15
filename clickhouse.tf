@@ -18,7 +18,7 @@ resource "azurerm_container_app" "clickhouse" {
   template {
     container {
       name   = "clickhouse"
-      image  = "docker.io/bitnami/clickhouse:24.8-debian-12"
+      image  = "docker.io/bitnami/clickhouse:24.10.3-debian-12-r0"
       cpu    = 1.0
       memory = "2Gi"
 
