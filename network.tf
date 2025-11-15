@@ -28,6 +28,9 @@ resource "azurerm_subnet" "container_apps" {
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.container_apps_subnet_address_prefix]
 
+  # Service endpoints for Storage Account access
+  service_endpoints = ["Microsoft.Storage"]
+
   delegation {
     name = "container-apps-delegation"
     service_delegation {
@@ -37,4 +40,12 @@ resource "azurerm_subnet" "container_apps" {
       ]
     }
   }
+}
+
+# Private Endpoint subnet (for PostgreSQL and Redis)
+resource "azurerm_subnet" "private_endpoints" {
+  name                 = "${module.naming.subnet.name}-private-endpoints"
+  resource_group_name  = azurerm_resource_group.this.name
+  virtual_network_name = azurerm_virtual_network.this.name
+  address_prefixes     = [var.private_endpoints_subnet_address_prefix]
 }

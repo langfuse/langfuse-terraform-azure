@@ -28,6 +28,12 @@ variable "container_apps_subnet_address_prefix" {
   default     = "10.224.0.0/23"
 }
 
+variable "private_endpoints_subnet_address_prefix" {
+  description = "Private Endpoints subnet address prefix (for PostgreSQL and Redis)."
+  type        = string
+  default     = "10.224.2.0/28"
+}
+
 variable "db_subnet_address_prefix" {
   description = "Subnet address prefix."
   type        = string
