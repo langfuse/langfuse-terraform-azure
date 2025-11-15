@@ -18,17 +18,22 @@ resource "azurerm_container_app" "clickhouse" {
   template {
     container {
       name   = "clickhouse"
-      image  = "docker.io/bitnami/clickhouse:24.10.3-debian-12-r0"
+      image  = "clickhouse/clickhouse-server:24.3-alpine"
       cpu    = 1.0
       memory = "2Gi"
 
       env {
-        name  = "CLICKHOUSE_ADMIN_USER"
+        name  = "CLICKHOUSE_DB"
         value = "default"
       }
 
       env {
-        name        = "CLICKHOUSE_ADMIN_PASSWORD"
+        name  = "CLICKHOUSE_USER"
+        value = "default"
+      }
+
+      env {
+        name        = "CLICKHOUSE_PASSWORD"
         secret_name = "clickhouse-password"
       }
     }
