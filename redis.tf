@@ -111,13 +111,7 @@ resource "azurerm_private_dns_a_record" "redis" {
 
 # Locals for Redis connection info
 locals {
-  redis_host = var.redis_tier == "standard" ?
-    azurerm_private_endpoint.redis_standard[0].private_service_connection[0].private_ip_address :
-    azurerm_private_endpoint.redis_enterprise[0].private_service_connection[0].private_ip_address
-
-  redis_port = var.redis_tier == "standard" ? "6380" : "10000"
-
-  redis_password = var.redis_tier == "standard" ?
-    azurerm_redis_cache.this[0].primary_access_key :
-    azurerm_redis_enterprise_database.this[0].primary_access_key
+  redis_host     = var.redis_tier == "standard" ? azurerm_private_endpoint.redis_standard[0].private_service_connection[0].private_ip_address : azurerm_private_endpoint.redis_enterprise[0].private_service_connection[0].private_ip_address
+  redis_port     = var.redis_tier == "standard" ? "6380" : "10000"
+  redis_password = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].primary_access_key : azurerm_redis_enterprise_database.this[0].primary_access_key
 }
