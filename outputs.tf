@@ -51,11 +51,6 @@ output "redis_primary_key" {
   sensitive   = true
 }
 
-output "redis_tier" {
-  description = "The tier of Redis (standard or enterprise)"
-  value       = var.redis_tier
-}
-
 output "storage_account_name" {
   description = "The name of the storage account"
   value       = azurerm_storage_account.this.name

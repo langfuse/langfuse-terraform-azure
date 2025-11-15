@@ -100,39 +100,10 @@ variable "postgres_storage_mb" {
   default     = 32768
 }
 
-variable "redis_tier" {
-  description = "Redis tier: 'standard' (Azure Cache for Redis - cheaper) or 'managed' (Azure Managed Redis - better performance, modern architecture)"
-  type        = string
-  default     = "standard"
-
-  validation {
-    condition     = contains(["standard", "managed"], var.redis_tier)
-    error_message = "redis_tier must be either 'standard' or 'managed'"
-  }
-}
-
 variable "redis_sku_name" {
-  description = "SKU name for Azure Cache for Redis (standard tier). Valid values: Basic, Standard, Premium"
+  description = "SKU name for Azure Managed Redis. Valid values: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc. See https://azure.microsoft.com/pricing/details/managed-redis/ for options."
   type        = string
-  default     = "Basic"
-}
-
-variable "redis_family" {
-  description = "Cache family for Azure Cache for Redis (standard tier). C for Basic/Standard, P for Premium"
-  type        = string
-  default     = "C"
-}
-
-variable "redis_capacity" {
-  description = "Capacity of Azure Cache for Redis (standard tier). 0-6 for C family, 1-5 for P family"
-  type        = number
-  default     = 1
-}
-
-variable "redis_managed_sku_name" {
-  description = "SKU name for Azure Managed Redis (managed tier). Valid values: Balanced_B0, Balanced_B1, Balanced_B3, etc. See https://azure.microsoft.com/pricing/details/managed-redis/ for options."
-  type        = string
-  default     = "Balanced_B3"
+  default     = "Balanced_B0"
 }
 
 variable "use_ddos_protection" {
