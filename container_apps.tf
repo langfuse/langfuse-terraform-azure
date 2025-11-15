@@ -41,12 +41,12 @@ resource "azurerm_container_app" "langfuse" {
 
       env {
         name  = "REDIS_HOST"
-        value = "${azurerm_private_endpoint.redis.private_service_connection[0].private_ip_address}"
+        value = local.redis_host
       }
 
       env {
         name  = "REDIS_PORT"
-        value = "6380"
+        value = local.redis_port
       }
 
       env {
@@ -176,7 +176,7 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "redis-password"
-    value = azurerm_redis_cache.this.primary_access_key
+    value = local.redis_password
   }
 
   secret {

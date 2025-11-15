@@ -36,19 +36,24 @@ output "postgres_admin_password" {
 }
 
 output "redis_host" {
-  description = "The hostname of the Redis instance"
-  value       = azurerm_redis_cache.this.hostname
+  description = "The hostname/IP of the Redis instance"
+  value       = local.redis_host
 }
 
-output "redis_ssl_port" {
-  description = "The SSL port of the Redis instance"
-  value       = azurerm_redis_cache.this.ssl_port
+output "redis_port" {
+  description = "The port of the Redis instance"
+  value       = local.redis_port
 }
 
 output "redis_primary_key" {
   description = "The primary access key for the Redis instance"
-  value       = azurerm_redis_cache.this.primary_access_key
+  value       = local.redis_password
   sensitive   = true
+}
+
+output "redis_tier" {
+  description = "The tier of Redis (standard or enterprise)"
+  value       = var.redis_tier
 }
 
 output "storage_account_name" {
