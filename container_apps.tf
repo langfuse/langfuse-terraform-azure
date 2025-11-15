@@ -170,6 +170,29 @@ resource "azurerm_container_app" "langfuse" {
       }
     }
 
+    # ClickHouse sidecar container
+    container {
+      name   = "clickhouse"
+      image  = "clickhouse/clickhouse-server:latest-alpine"
+      cpu    = 1.0
+      memory = "2Gi"
+
+      env {
+        name  = "CLICKHOUSE_DB"
+        value = "default"
+      }
+
+      env {
+        name  = "CLICKHOUSE_USER"
+        value = "default"
+      }
+
+      env {
+        name        = "CLICKHOUSE_PASSWORD"
+        secret_name = "clickhouse-password"
+      }
+    }
+
     min_replicas = var.container_app_min_replicas
     max_replicas = var.container_app_max_replicas
   }
@@ -196,7 +219,12 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-url"
-    value = "clickhouse://default:${random_password.clickhouse_password.result}@clickhouse:8123/default"
+    value = "clickhouse://default:${random_password.clickhouse_password.result}@localhost:8123/default"
+  }
+
+  secret {
+    name  = "clickhouse-password"
+    value = random_password.clickhouse_password.result
   }
 
   dynamic "secret" {
@@ -219,8 +247,4 @@ resource "azurerm_container_app" "langfuse" {
   tags = {
     application = local.tag_name
   }
-
-  depends_on = [
-    azurerm_container_app.clickhouse
-  ]
 }
