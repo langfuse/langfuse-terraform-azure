@@ -53,49 +53,54 @@ terraform apply
 
 ---
 
-## Container Apps版のフロー
+## Container Apps版のフロー（現在の構成）
 
 ### ステップ1: Terraform初期化
 ```bash
 terraform init
 ```
-- Terraformプロバイダーのダウンロード（azurerm, random, tls）
+- Terraformプロバイダーのダウンロード（azurerm, random）
 - **kubernetes、helmプロバイダーは不要**
+- **tlsプロバイダーも不要**（カスタムドメイン不使用時）
 
-### ステップ2: DNSゾーンの先行作成（オプション）
-```bash
-terraform apply --target module.langfuse.azurerm_dns_zone.this
-```
-- Azure DNS Zoneのみを作成
-- **Container AppsのデフォルトドメインでもOK（DNSゾーン不要）**
-
-### ステップ3: DNS委任設定（オプション）
-- カスタムドメインを使う場合のみ必要
-
-### ステップ4: フルスタック構築
+### ステップ2: フルスタック構築
 ```bash
 terraform apply
 ```
 
-#### フェーズ1: 基盤インフラ（8-12分）
-1. リソースグループ、VNet、サブネット
-2. PostgreSQL、Redis、Storage Account
-3. Private Endpoint、Private DNS Zone
-4. **Container Apps Environment作成（2-3分）**
-5. Key Vault（カスタムドメイン使用時のみ）
-6. DNS Aレコード（カスタムドメイン使用時のみ）
+**注意**: DNSゾーンの先行作成は不要です。このリポジトリの現在の構成では、DNSゾーンとKey Vaultは削除されており、Container Appsのデフォルトドメインを使用します。
 
-#### フェーズ2: アプリケーションデプロイ（3-5分）
-7. **Container App作成**
+#### フェーズ1: 基盤インフラ（5-10分）
+1. リソースグループ、VNet、サブネット（Container Apps専用）
+2. PostgreSQL Flexible Server（Private Endpoint使用）
+3. Redis Cache（Private Endpoint使用）
+4. Storage Account（LRS、公開アクセス+ファイアウォール）
+5. Private DNS Zone（PostgreSQL、Redis用）
+6. Log Analytics Workspace
+
+#### フェーズ2: Container Apps環境（2-3分）
+7. **Container Apps Environment作成**
+    - Log Analyticsとの統合
+    - VNetへの統合
+
+#### フェーズ3: アプリケーションデプロイ（3-5分）
+8. **Container App作成（Langfuse）**
     - コンテナイメージ指定（直接デプロイ）
-    - 環境変数、シークレット設定
+    - 環境変数、シークレット設定（PostgreSQL、Redis、Storage接続情報）
     - スケーリングルール設定
     - データベースマイグレーション（初回起動時）
-8. **Ingress設定**
-    - Container AppsのマネージドIngress
-    - または Application Gateway統合（オプション）
+9. **Ingress設定**
+    - Container Appsのマネージドングress（HTTPSは自動）
+    - デフォルトドメイン: `<app-name>.<random-id>.<region>.azurecontainerapps.io`
 
-**合計所要時間: 10-20分（AKSより短縮）**
+**合計所要時間: 10-18分（AKSの半分程度）**
+
+**削減されたリソース（開発環境向け最適化）**:
+- ❌ NAT Gateway
+- ❌ DNS Zone
+- ❌ Key Vault
+- ❌ Storage Private Endpoint
+- ❌ Application Gateway
 
 ---
 
@@ -455,3 +460,8 @@ az containerapp logs show --name langfuse --resource-group <rg-name>
 - [Azure Container Apps documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
 - [Langfuse Self-hosting documentation](https://langfuse.com/docs/deployment/self-host)
 - [Container Apps と AKS の比較](https://learn.microsoft.com/en-us/azure/container-apps/compare-options)
+
+---
+
+**最終更新**: 2025-11-15
+**対象バージョン**: Container Apps版（開発環境最適化済み）

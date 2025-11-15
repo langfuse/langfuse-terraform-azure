@@ -9,11 +9,11 @@ This repository contains a Terraform configuration for deploying [Langfuse](http
 ## Features
 
 - ✅ **Serverless**: Azure Container Apps with auto-scaling
-- ✅ **Cost-effective**: 30-70% cheaper than AKS-based deployment
+- ✅ **Cost-effective**: 25-50% cheaper than AKS-based deployment (dev: $39-75/mo, can be optimized to $20-34/mo)
 - ✅ **Fully managed**: PostgreSQL, Redis, Storage, Log Analytics
 - ✅ **Secure**: Private Endpoints for databases and cache
 - ✅ **Simple**: No Kubernetes/Helm knowledge required
-- ✅ **Fast deployment**: 10-20 minutes vs 20-30 minutes for AKS
+- ✅ **Fast deployment**: 10-18 minutes vs 20-30 minutes for AKS
 
 ## Architecture
 
@@ -174,37 +174,64 @@ https://langfuse.xxxxx.japaneast.azurecontainerapps.io
 
 ## Cost Estimates
 
-### Development Environment
+### Development Environment (Current Configuration)
 
 ```hcl
 # terraform.tfvars
+location = "japaneast"
+name     = "langfuse-dev"
+
 container_app_cpu          = 0.5
 container_app_memory       = 1
-container_app_min_replicas = 0
-postgres_instance_count    = 1
-postgres_sku_name         = "B_Standard_B1ms"
-redis_sku_name            = "Basic"
-redis_capacity            = 0
-use_ddos_protection       = false
+container_app_min_replicas = 0  # Scale to zero
+container_app_max_replicas = 3
+
+postgres_instance_count = 1  # No HA
+postgres_sku_name      = "B_Standard_B1ms"
+postgres_storage_mb    = 32768
+
+redis_sku_name = "Basic"
+redis_capacity = 0
+
+use_ddos_protection = false
 ```
 
-**Monthly cost**: $20-40
+**Monthly cost**: $39-75
+
+**Optimizations applied**:
+- ✅ NAT Gateway removed
+- ✅ DNS Zone removed (using Container Apps default domain)
+- ✅ Key Vault removed
+- ✅ Storage Private Endpoint removed
+- ✅ Storage using LRS (instead of GRS)
+
+See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for further cost reduction options (down to $20-34/month).
 
 ### Production Environment
 
 ```hcl
 # terraform.tfvars
+location = "japaneast"
+name     = "langfuse-prod"
+
 container_app_cpu          = 2.0
 container_app_memory       = 4
 container_app_min_replicas = 2
-postgres_instance_count    = 2
-postgres_sku_name         = "GP_Standard_D4s_v3"
-redis_sku_name            = "Standard"
-redis_capacity            = 1
-use_ddos_protection       = false
+container_app_max_replicas = 20
+
+postgres_instance_count = 2  # HA enabled
+postgres_sku_name      = "GP_Standard_D4s_v3"
+postgres_storage_mb    = 131072
+
+redis_sku_name = "Standard"
+redis_capacity = 1
+
+use_ddos_protection = false
 ```
 
-**Monthly cost**: $150-250
+**Monthly cost**: $242-504
+
+**Note**: Production deployments may need NAT Gateway (+$30), DNS Zone (+$0.50), and Key Vault (+$0.03) depending on requirements.
 
 ## Outputs
 
@@ -317,15 +344,17 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 
 ## Comparison: Container Apps vs AKS
 
-| Feature | Container Apps | AKS (previous) |
-|---------|---------------|----------------|
-| **Deployment Time** | 10-20 min | 20-30 min |
-| **Cost (Dev)** | $20-40/mo | $55-85/mo |
-| **Cost (Prod)** | $150-250/mo | $275-700/mo |
+| Feature | Container Apps (Current) | AKS (Previous) |
+|---------|-------------------------|----------------|
+| **Deployment Time** | 10-18 min | 20-30 min |
+| **Cost (Dev)** | $39-75/mo* | $53-117/mo |
+| **Cost (Prod)** | $242-504/mo | $275-704/mo |
 | **Complexity** | Low | High |
 | **Kubernetes Knowledge** | Not required | Required |
 | **Auto-scaling** | Built-in | Manual setup |
 | **Monitoring** | Built-in | Manual setup |
+
+\* Can be further reduced to $20-34/mo with additional optimizations (see [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md))
 
 ## Support
 
@@ -344,12 +373,20 @@ Contributions are welcome! Please open an issue or PR.
 
 ## Changelog
 
-### v2.0.0 - Container Apps Migration
+### v2.1.0 - Development Environment Optimization (2025-11-15)
+- Removed NAT Gateway for cost reduction
+- Removed DNS Zone (using Container Apps default domain)
+- Removed Key Vault (no custom domain)
+- Removed Storage Private Endpoint
+- Changed Storage to LRS (from GRS)
+- Development environment cost: $39-75/mo (25-50% reduction from initial Container Apps version)
+
+### v2.0.0 - Container Apps Migration (2025-11-13)
 - Migrated from AKS to Azure Container Apps
 - Removed Kubernetes/Helm dependencies
 - Simplified architecture
-- 30-70% cost reduction
-- Faster deployment times
+- 25-50% cost reduction vs AKS
+- Faster deployment times (10-18 min vs 20-30 min)
 
 ### v0.4.4 - Last AKS version
 - AKS-based deployment (deprecated)
