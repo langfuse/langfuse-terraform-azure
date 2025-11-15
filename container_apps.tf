@@ -9,10 +9,9 @@ resource "azurerm_container_app_environment" "this" {
     application = local.tag_name
   }
 
-  # Ensure subnet and provider registration are fully complete before creating the environment
+  # Ensure subnet is fully complete before creating the environment
   depends_on = [
-    azurerm_subnet.container_apps,
-    azurerm_resource_provider_registration.app
+    azurerm_subnet.container_apps
   ]
 }
 
