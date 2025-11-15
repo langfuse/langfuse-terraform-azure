@@ -20,30 +20,25 @@ resource "azurerm_redis_cache" "this" {
   }
 }
 
-# Azure Managed Redis (Enterprise tier)
-resource "azurerm_managed_redis_cluster" "this" {
-  count = var.redis_tier == "enterprise" ? 1 : 0
+# Azure Managed Redis
+resource "azurerm_managed_redis" "this" {
+  count = var.redis_tier == "managed" ? 1 : 0
 
   name                = module.naming.redis_cache.name_unique
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
-  sku_name            = var.redis_enterprise_sku_name
+  sku_name            = var.redis_managed_sku_name
+
+  default_database {
+    access_keys_authentication_enabled = true
+    client_protocol                    = "Encrypted"
+    clustering_policy                  = "OSSCluster"
+    eviction_policy                    = "VolatileLRU"
+  }
 
   tags = {
     application = local.tag_name
   }
-}
-
-resource "azurerm_redis_enterprise_database" "this" {
-  count = var.redis_tier == "enterprise" ? 1 : 0
-
-  name       = "default"
-  cluster_id = azurerm_managed_redis_cluster.this[0].id
-
-  client_protocol   = "Encrypted"
-  clustering_policy = "EnterpriseCluster"
-  eviction_policy   = "NoEviction"
-  port              = 10000
 }
 
 # Private Endpoint for Redis (Standard tier)
@@ -63,9 +58,9 @@ resource "azurerm_private_endpoint" "redis_standard" {
   }
 }
 
-# Private Endpoint for Redis (Enterprise tier)
-resource "azurerm_private_endpoint" "redis_enterprise" {
-  count = var.redis_tier == "enterprise" ? 1 : 0
+# Private Endpoint for Redis (Managed tier)
+resource "azurerm_private_endpoint" "redis_managed" {
+  count = var.redis_tier == "managed" ? 1 : 0
 
   name                = "${module.naming.private_endpoint.name}-redis"
   location            = azurerm_resource_group.this.location
@@ -73,8 +68,8 @@ resource "azurerm_private_endpoint" "redis_enterprise" {
   subnet_id           = azurerm_subnet.private_endpoints.id
 
   private_service_connection {
-    name                           = "${var.name}-redis-enterprise"
-    private_connection_resource_id = azurerm_managed_redis_cluster.this[0].id
+    name                           = "${var.name}-redis-managed"
+    private_connection_resource_id = azurerm_managed_redis.this[0].id
     is_manual_connection           = false
     subresource_names              = ["redisEnterprise"]
   }
@@ -96,20 +91,20 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
 
 # A record for Redis private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].name : azurerm_managed_redis_cluster.this[0].name
+  name                = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].name : azurerm_managed_redis.this[0].name
   zone_name           = azurerm_private_dns_zone.redis.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300
   records = [
     var.redis_tier == "standard" ?
       azurerm_private_endpoint.redis_standard[0].private_service_connection[0].private_ip_address :
-      azurerm_private_endpoint.redis_enterprise[0].private_service_connection[0].private_ip_address
+      azurerm_private_endpoint.redis_managed[0].private_service_connection[0].private_ip_address
   ]
 }
 
 # Locals for Redis connection info
 locals {
-  redis_host     = var.redis_tier == "standard" ? azurerm_private_endpoint.redis_standard[0].private_service_connection[0].private_ip_address : azurerm_private_endpoint.redis_enterprise[0].private_service_connection[0].private_ip_address
-  redis_port     = var.redis_tier == "standard" ? "6380" : "10000"
-  redis_password = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].primary_access_key : azurerm_redis_enterprise_database.this[0].primary_access_key
+  redis_host     = var.redis_tier == "standard" ? azurerm_private_endpoint.redis_standard[0].private_service_connection[0].private_ip_address : azurerm_private_endpoint.redis_managed[0].private_service_connection[0].private_ip_address
+  redis_port     = var.redis_tier == "standard" ? "6380" : tostring(azurerm_managed_redis.this[0].default_database[0].port)
+  redis_password = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].primary_access_key : azurerm_managed_redis.this[0].default_database[0].primary_access_key
 }
