@@ -1,7 +1,10 @@
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 
-  # Disable automatic provider registration
-  # We manage all provider registrations explicitly via azurerm_resource_provider_registration
+  # Disable automatic provider registration - we manage them explicitly
   resource_provider_registrations = "none"
 }
