@@ -8,6 +8,12 @@ resource "azurerm_container_app_environment" "this" {
   tags = {
     application = local.tag_name
   }
+
+  # Ensure subnet and provider registration are fully complete before creating the environment
+  depends_on = [
+    azurerm_subnet.container_apps,
+    azurerm_resource_provider_registration.app
+  ]
 }
 
 resource "azurerm_container_app" "langfuse" {
