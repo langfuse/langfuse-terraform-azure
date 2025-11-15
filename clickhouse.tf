@@ -19,8 +19,8 @@ resource "azurerm_container_app" "clickhouse" {
     container {
       name   = "clickhouse"
       image  = "clickhouse/clickhouse-server:24.3-alpine"
-      cpu    = 0.5
-      memory = "1Gi"
+      cpu    = 1.0
+      memory = "2Gi"
 
       env {
         name  = "CLICKHOUSE_DB"
