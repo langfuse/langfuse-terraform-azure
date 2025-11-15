@@ -31,15 +31,7 @@ resource "azurerm_subnet" "container_apps" {
   # Service endpoints for Storage Account access
   service_endpoints = ["Microsoft.Storage"]
 
-  delegation {
-    name = "container-apps-delegation"
-    service_delegation {
-      name = "Microsoft.App/environments"
-      actions = [
-        "Microsoft.Network/virtualNetworks/subnets/join/action",
-      ]
-    }
-  }
+  # Note: Do NOT add delegation here - Container App Environment will manage it automatically
 }
 
 # Private Endpoint subnet (for PostgreSQL and Redis)
