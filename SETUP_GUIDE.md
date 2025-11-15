@@ -189,9 +189,7 @@ postgres_sku_name      = "B_Standard_B1ms"
 postgres_storage_mb    = 32768
 
 # Redis設定（開発環境向け）
-redis_sku_name = "Basic"
-redis_family   = "C"
-redis_capacity = 0
+redis_sku_name = "Balanced_B0"
 
 # セキュリティ設定
 use_encryption_key  = true
@@ -399,9 +397,7 @@ postgres_ha_mode       = "ZoneRedundant"
 postgres_sku_name      = "GP_Standard_D4s_v3"
 postgres_storage_mb    = 131072
 
-redis_sku_name = "Standard"
-redis_family   = "C"
-redis_capacity = 1
+redis_sku_name = "Balanced_B1"
 
 use_encryption_key  = true
 use_ddos_protection = true

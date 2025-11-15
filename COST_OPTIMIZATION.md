@@ -52,9 +52,9 @@
 
 ### 🥇 優先度: 高（大きなコスト削減）
 
-#### 1. Redisの代替案（月額 $15-100削減）
+#### 1. Redisの代替案（月額 $15削減）
 
-**現状**: Azure Cache for Redis (Basic C0 = $15/月、Standard C1 = $50/月)
+**現状**: Azure Managed Redis (Balanced B0 = $14.60/月)
 
 **代替案A: Dragonfly on Container Apps**
 
@@ -325,9 +325,7 @@ postgres_sku_name      = "B_Standard_B1ms"
 postgres_storage_mb    = 32768
 
 # Redis（管理型、最小構成）
-redis_sku_name = "Basic"
-redis_family   = "C"
-redis_capacity = 0
+redis_sku_name = "Balanced_B0"
 
 # セキュリティ（開発環境）
 use_encryption_key  = false  # 暗号化キーなし

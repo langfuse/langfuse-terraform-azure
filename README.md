@@ -93,8 +93,7 @@ postgres_instance_count = 1      # No HA
 postgres_sku_name      = "B_Standard_B1ms"
 postgres_storage_mb    = 32768
 
-redis_sku_name = "Basic"
-redis_capacity = 0
+redis_sku_name = "Balanced_B0"
 
 use_ddos_protection = false
 EOF
@@ -161,9 +160,7 @@ https://langfuse.xxxxx.japaneast.azurecontainerapps.io
 
 | Name | Description | Default |
 |------|-------------|---------|
-| `redis_sku_name` | Redis SKU | `"Basic"` |
-| `redis_family` | Redis family | `"C"` |
-| `redis_capacity` | Redis capacity | `1` |
+| `redis_sku_name` | Azure Managed Redis SKU | `"Balanced_B0"` |
 
 #### Security
 
@@ -190,8 +187,7 @@ postgres_instance_count = 1  # No HA
 postgres_sku_name      = "B_Standard_B1ms"
 postgres_storage_mb    = 32768
 
-redis_sku_name = "Basic"
-redis_capacity = 0
+redis_sku_name = "Balanced_B0"
 
 use_ddos_protection = false
 ```
@@ -223,8 +219,7 @@ postgres_instance_count = 2  # HA enabled
 postgres_sku_name      = "GP_Standard_D4s_v3"
 postgres_storage_mb    = 131072
 
-redis_sku_name = "Standard"
-redis_capacity = 1
+redis_sku_name = "Balanced_B1"
 
 use_ddos_protection = false
 ```
