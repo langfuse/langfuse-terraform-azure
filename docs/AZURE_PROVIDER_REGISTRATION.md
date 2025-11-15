@@ -69,27 +69,52 @@ provider "azurerm" {
 
 ## 推奨される解決策
 
-**provider_registration.tfを使用せず、Azureの自動登録に任せる**
+**terraform stateからプロバイダー登録リソースを削除して、管理対象外にする**
 
 ### 理由：
 
-1. **Azureの設計思想:**
+1. **Terraformでのプロバイダー登録管理は困難:**
+   - 自動登録: apply時に競合エラー
+   - 明示的管理: destroy時に登録解除エラー
+   - prevent_destroy: destroy時に削除禁止エラー
+   - **どの方法も完全には機能しない**
+
+2. **Azureの設計思想:**
    - プロバイダー登録は一度行えばサブスクリプション全体で有効
    - 登録解除する必要性はほとんどない
    - リソースを削除してもプロバイダー登録は残っても問題ない
-
-2. **Terraformの制限:**
-   - リソースの削除とプロバイダー登録の依存関係を正しく管理するのは困難
-   - 削除順序を制御できても、Azureの非同期処理のため確実性がない
+   - **Terraformで管理する必要がない**
 
 3. **実用性:**
    - プロバイダー登録自体にコストはかからない
-   - 明示的に管理するメリットがほとんどない
    - terraform destroyでクリーンに削除できることの方が重要
 
-### 実装方法：
+### 実装手順：
 
-**provider.tf:**
+#### 1. terraform stateからプロバイダー登録リソースを削除
+
+```bash
+terraform state rm azurerm_resource_provider_registration.app
+terraform state rm azurerm_resource_provider_registration.storage
+terraform state rm azurerm_resource_provider_registration.dbforpostgresql
+terraform state rm azurerm_resource_provider_registration.cache
+terraform state rm azurerm_resource_provider_registration.network
+terraform state rm azurerm_resource_provider_registration.operationalinsights
+```
+
+これにより：
+- Terraformの管理対象から除外される
+- Azure側のプロバイダー登録は残る（必要）
+- 今後のterraform applyやdestroyに影響しない
+
+#### 2. provider_registration.tfを削除
+
+```bash
+rm provider_registration.tf
+```
+
+#### 3. provider.tfから設定を削除
+
 ```hcl
 provider "azurerm" {
   features {
@@ -97,20 +122,32 @@ provider "azurerm" {
       prevent_deletion_if_contains_resources = false
     }
   }
-  # resource_provider_registrations設定なし
+  # resource_provider_registrations設定を削除
 }
 ```
 
-**provider_registration.tfは作成しない**
+#### 4. container_apps.tfのdepends_onを更新
 
-Azureが自動的に必要なプロバイダーを登録してくれます。
+```hcl
+depends_on = [
+  azurerm_subnet.container_apps
+  # azurerm_resource_provider_registration.appの参照を削除
+]
+```
+
+### 今後の動作：
+
+- Azure側でプロバイダーは既に登録されているため、新規リソース作成時も問題なし
+- terraform destroyは正常に動作する
+- 新しいプロバイダーが必要になった場合、Azureポータルまたはazコマンドで手動登録
 
 ## まとめ
 
 | アプローチ | terraform apply | terraform destroy | 推奨度 |
 |-----------|-----------------|-------------------|--------|
-| 明示的管理 + prevent_destroy | ✅ | ❌ | ❌ |
+| 自動登録 (デフォルト) | ❌ (競合エラー) | - | ❌ |
 | 明示的管理のみ | ❌ (競合エラー) | ❌ (登録解除失敗) | ❌ |
-| 自動登録 (デフォルト) | ✅ | ✅ | ✅ |
+| 明示的管理 + prevent_destroy | ✅ | ❌ (削除禁止) | ❌ |
+| **stateから削除して管理対象外** | ✅ | ✅ | ✅ |
 
-**結論:** provider_registration.tfを使用せず、Azureの自動登録機能を利用するのが最適です。
+**結論:** プロバイダー登録はTerraformで管理せず、Azure側に任せるのが最適です。
