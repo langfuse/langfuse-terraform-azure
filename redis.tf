@@ -20,15 +20,14 @@ resource "azurerm_redis_cache" "this" {
   }
 }
 
-# Azure Cache for Redis Enterprise (Enterprise tier)
-resource "azurerm_redis_enterprise_cluster" "this" {
+# Azure Managed Redis (Enterprise tier)
+resource "azurerm_managed_redis_cluster" "this" {
   count = var.redis_tier == "enterprise" ? 1 : 0
 
   name                = module.naming.redis_cache.name_unique
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   sku_name            = var.redis_enterprise_sku_name
-  minimum_tls_version = "1.2"
 
   tags = {
     application = local.tag_name
@@ -38,9 +37,8 @@ resource "azurerm_redis_enterprise_cluster" "this" {
 resource "azurerm_redis_enterprise_database" "this" {
   count = var.redis_tier == "enterprise" ? 1 : 0
 
-  name                = "default"
-  resource_group_name = azurerm_resource_group.this.name
-  cluster_id          = azurerm_redis_enterprise_cluster.this[0].id
+  name       = "default"
+  cluster_id = azurerm_managed_redis_cluster.this[0].id
 
   client_protocol   = "Encrypted"
   clustering_policy = "EnterpriseCluster"
@@ -76,7 +74,7 @@ resource "azurerm_private_endpoint" "redis_enterprise" {
 
   private_service_connection {
     name                           = "${var.name}-redis-enterprise"
-    private_connection_resource_id = azurerm_redis_enterprise_cluster.this[0].id
+    private_connection_resource_id = azurerm_managed_redis_cluster.this[0].id
     is_manual_connection           = false
     subresource_names              = ["redisEnterprise"]
   }
@@ -98,7 +96,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
 
 # A record for Redis private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].name : azurerm_redis_enterprise_cluster.this[0].name
+  name                = var.redis_tier == "standard" ? azurerm_redis_cache.this[0].name : azurerm_managed_redis_cluster.this[0].name
   zone_name           = azurerm_private_dns_zone.redis.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300
