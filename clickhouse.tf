@@ -24,10 +24,16 @@ resource "azurerm_container_app" "clickhouse" {
       cpu    = 1.0
       memory = "2Gi"
 
-      # Enable network access without authentication for internal communication
+      # Enable network access for internal communication
+      # Setting empty password allows network access without authentication
       env {
-        name  = "CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT"
-        value = "1"
+        name  = "CLICKHOUSE_USER"
+        value = "default"
+      }
+
+      env {
+        name  = "CLICKHOUSE_PASSWORD"
+        value = ""
       }
 
       volume_mounts {
