@@ -145,6 +145,21 @@ resource "azurerm_container_app" "langfuse" {
         secret_name = "clickhouse-url"
       }
 
+      env {
+        name  = "LANGFUSE_INIT_USER_EMAIL"
+        value = "admin@example.com"
+      }
+
+      env {
+        name  = "LANGFUSE_INIT_USER_NAME"
+        value = "Admin User"
+      }
+
+      env {
+        name        = "LANGFUSE_INIT_USER_PASSWORD"
+        secret_name = "langfuse-admin-password"
+      }
+
       dynamic "env" {
         for_each = var.use_encryption_key ? [1] : []
         content {
@@ -210,6 +225,11 @@ resource "azurerm_container_app" "langfuse" {
   secret {
     name  = "clickhouse-url"
     value = "http://localhost:8123/default"
+  }
+
+  secret {
+    name  = "langfuse-admin-password"
+    value = random_password.langfuse_admin_password.result
   }
 
   dynamic "secret" {
