@@ -214,12 +214,12 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-migration-url"
-    value = "http://${azurerm_container_app.clickhouse.ingress[0].fqdn}/default"
+    value = "clickhouse://${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
   }
 
   secret {
     name  = "clickhouse-url"
-    value = "http://${azurerm_container_app.clickhouse.ingress[0].fqdn}/default"
+    value = "clickhouse://${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
   }
 
   secret {

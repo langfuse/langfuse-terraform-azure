@@ -42,11 +42,12 @@ resource "azurerm_container_app" "clickhouse" {
     max_replicas = 1
   }
 
-  # Internal Ingress for HTTP protocol (port 8123)
+  # Internal Ingress for ClickHouse native protocol (port 9000)
   ingress {
     external_enabled = false  # Internal only
-    target_port      = 8123   # HTTP protocol
-    transport        = "auto" # Auto-detect HTTP/HTTP2
+    target_port      = 9000   # ClickHouse native protocol
+    exposed_port     = 9000   # Required for TCP transport
+    transport        = "tcp"  # TCP transport for native protocol
 
     traffic_weight {
       percentage      = 100
