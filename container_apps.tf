@@ -191,6 +191,18 @@ resource "azurerm_container_app" "langfuse" {
       image  = "clickhouse/clickhouse-server:latest-alpine"
       cpu    = 1.0
       memory = "2Gi"
+
+      volume_mounts {
+        name = "clickhouse-data"
+        path = "/var/lib/clickhouse"
+      }
+    }
+
+    # Persistent volume for ClickHouse data
+    volume {
+      name         = "clickhouse-data"
+      storage_type = "AzureFile"
+      storage_name = azurerm_container_app_environment_storage.clickhouse.name
     }
 
     min_replicas = var.container_app_min_replicas
@@ -252,4 +264,14 @@ resource "azurerm_container_app" "langfuse" {
   tags = {
     application = local.tag_name
   }
+}
+
+# Azure File Share storage for ClickHouse persistence
+resource "azurerm_container_app_environment_storage" "clickhouse" {
+  name                         = "clickhouse-storage"
+  container_app_environment_id = azurerm_container_app_environment.this.id
+  account_name                 = azurerm_storage_account.this.name
+  share_name                   = azurerm_storage_share.clickhouse.name
+  access_key                   = azurerm_storage_account.this.primary_access_key
+  access_mode                  = "ReadWrite"
 }

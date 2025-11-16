@@ -28,3 +28,11 @@ resource "azurerm_storage_container" "this" {
   storage_account_id    = azurerm_storage_account.this.id
   container_access_type = "private"
 }
+
+# Azure File Share for ClickHouse persistent storage
+resource "azurerm_storage_share" "clickhouse" {
+  name                 = "clickhouse-data"
+  storage_account_name = azurerm_storage_account.this.name
+  quota                = 50  # 50 GB quota - adjust based on needs
+  enabled_protocol     = "SMB"
+}
