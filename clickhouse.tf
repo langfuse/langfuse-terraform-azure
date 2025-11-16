@@ -24,6 +24,12 @@ resource "azurerm_container_app" "clickhouse" {
       cpu    = 1.0
       memory = "2Gi"
 
+      # Enable network access without authentication for internal communication
+      env {
+        name  = "CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT"
+        value = "1"
+      }
+
       volume_mounts {
         name = "clickhouse-data"
         path = "/var/lib/clickhouse"
