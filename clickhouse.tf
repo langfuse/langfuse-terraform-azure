@@ -46,7 +46,7 @@ resource "azurerm_container_app" "clickhouse" {
   ingress {
     external_enabled = false  # Internal only
     target_port      = 8123   # HTTP protocol
-    transport        = "http"
+    transport        = "auto" # Auto-detect HTTP/HTTP2
 
     traffic_weight {
       percentage      = 100
