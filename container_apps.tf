@@ -176,21 +176,6 @@ resource "azurerm_container_app" "langfuse" {
       image  = "clickhouse/clickhouse-server:latest-alpine"
       cpu    = 1.0
       memory = "2Gi"
-
-      env {
-        name  = "CLICKHOUSE_DB"
-        value = "default"
-      }
-
-      env {
-        name  = "CLICKHOUSE_USER"
-        value = "default"
-      }
-
-      env {
-        name        = "CLICKHOUSE_PASSWORD"
-        secret_name = "clickhouse-password"
-      }
     }
 
     min_replicas = var.container_app_min_replicas
@@ -219,17 +204,12 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-migration-url"
-    value = "clickhouse://default:${random_password.clickhouse_password.result}@localhost:9000/default"
+    value = "clickhouse://localhost:9000/default"
   }
 
   secret {
     name  = "clickhouse-url"
-    value = "http://default:${random_password.clickhouse_password.result}@localhost:8123/default"
-  }
-
-  secret {
-    name  = "clickhouse-password"
-    value = random_password.clickhouse_password.result
+    value = "http://localhost:8123/default"
   }
 
   dynamic "secret" {
