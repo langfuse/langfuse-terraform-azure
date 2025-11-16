@@ -38,6 +38,12 @@ resource "azurerm_container_app" "clickhouse" {
         value = random_password.clickhouse_password.result
       }
 
+      # Force revision update
+      env {
+        name  = "CLICKHOUSE_REVISION"
+        value = "2"
+      }
+
       volume_mounts {
         name = "clickhouse-data"
         path = "/var/lib/clickhouse"
