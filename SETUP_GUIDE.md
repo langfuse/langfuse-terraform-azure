@@ -267,7 +267,23 @@ https://<container-app-fqdn>
 
 ### 7.3 初期セットアップ
 
-1. 管理者アカウントの作成
+Langfuseは初回デプロイ時に自動的に管理者ユーザーを作成します。
+
+**初期管理者アカウント**:
+- **Email**: `admin@example.com`
+- **Name**: `Admin User`
+- **Password**: 自動生成された32文字のパスワード
+
+パスワードを確認するには：
+
+```bash
+terraform output -raw langfuse_admin_password
+```
+
+> **重要**: 初回ログイン後、すぐにパスワードを変更することを推奨します。
+
+**次のステップ**:
+1. 上記の認証情報でログイン
 2. プロジェクトの作成
 3. APIキーの生成
 
@@ -300,11 +316,12 @@ Container Apps版の場合：
 | Container Apps | $5-20 | $50-200 |
 | PostgreSQL | $10-30 | $100-300 |
 | Redis | $15 | $50-100 |
-| Storage Account | $5 | $20 |
+| Storage Account (Blob) | $2-3 | $20 |
+| Storage Account (File Share 50GB) | $2.50 | $2.50-10 |
 | Log Analytics | $5 | $20-50 |
-| **合計** | **$40-85** | **$240-670** |
+| **合計** | **$41-77** | **$242-680** |
 
-> **注意**: 実際のコストは使用量により変動します。この構成ではNAT Gateway、DNS Zone、Key Vaultは含まれていません（開発環境向け最適化）。
+> **注意**: 実際のコストは使用量により変動します。この構成ではNAT Gateway、DNS Zone、Key Vaultは含まれていません（開発環境向け最適化）。File ShareはClickHouseの永続ストレージに使用されます。
 
 ---
 
@@ -491,5 +508,5 @@ az account list-locations --output table
 
 ---
 
-**最終更新**: 2025-11-13
-**対象バージョン**: Container Apps版
+**最終更新**: 2025-11-16
+**対象バージョン**: Container Apps版 (v2.2.0)

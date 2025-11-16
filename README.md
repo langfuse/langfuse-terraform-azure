@@ -9,21 +9,29 @@ This repository contains a Terraform configuration for deploying [Langfuse](http
 ## Features
 
 - ✅ **Serverless**: Azure Container Apps with auto-scaling
-- ✅ **Cost-effective**: 25-50% cheaper than AKS-based deployment (dev: $39-75/mo, can be optimized to $20-34/mo)
+- ✅ **Cost-effective**: 25-50% cheaper than AKS-based deployment (dev: $41-77/mo, can be optimized to $22-36/mo)
 - ✅ **Fully managed**: PostgreSQL, Redis, Storage, Log Analytics
 - ✅ **Secure**: Private Endpoints for databases and cache
 - ✅ **Simple**: No Kubernetes/Helm knowledge required
 - ✅ **Fast deployment**: 10-18 minutes vs 20-30 minutes for AKS
+- ✅ **Persistent storage**: ClickHouse data persists across restarts with Azure File Share
 
 ## Architecture
 
 ```
 Internet
     ↓
-Container Apps (Langfuse)
+Container Apps (Langfuse + ClickHouse sidecar)
     ↓ Private Endpoints
-PostgreSQL + Redis + Storage
+PostgreSQL + Redis + Storage (Blob + File Share)
 ```
+
+**Components**:
+- **Langfuse**: Main application container
+- **ClickHouse**: Analytics database (sidecar container with persistent Azure File Share)
+- **PostgreSQL**: Primary database with Private Endpoint
+- **Redis**: Caching layer with Private Endpoint
+- **Storage**: Blob storage for uploads + File Share for ClickHouse data
 
 ## Quick Start
 
@@ -121,6 +129,23 @@ If you didn't set a domain, you'll get a default Container Apps URL like:
 https://langfuse.xxxxx.japaneast.azurecontainerapps.io
 ```
 
+### Initial Admin User
+
+Langfuse automatically creates an initial admin user on first deployment:
+
+- **Email**: `admin@example.com` (configurable via `LANGFUSE_INIT_USER_EMAIL`)
+- **Name**: `Admin User` (configurable via `LANGFUSE_INIT_USER_NAME`)
+- **Password**: Randomly generated 32-character password
+
+To retrieve the admin password:
+
+```bash
+# View the password (stored in Terraform state)
+terraform output -raw langfuse_admin_password
+```
+
+> **Note**: For production deployments, change the default email address by setting `LANGFUSE_INIT_USER_EMAIL` in the `additional_env` variable, or change the password immediately after first login.
+
 ## Configuration Options
 
 ### Required Variables
@@ -192,7 +217,7 @@ redis_sku_name = "Balanced_B0"
 use_ddos_protection = false
 ```
 
-**Monthly cost**: $39-75
+**Monthly cost**: $41-77
 
 **Optimizations applied**:
 - ✅ NAT Gateway removed
@@ -200,8 +225,9 @@ use_ddos_protection = false
 - ✅ Key Vault removed
 - ✅ Storage Private Endpoint removed
 - ✅ Storage using LRS (instead of GRS)
+- ✅ ClickHouse with persistent storage (Azure File Share 50GB)
 
-See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for further cost reduction options (down to $20-34/month).
+See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for further cost reduction options (down to $22-36/month).
 
 ### Production Environment
 
@@ -367,6 +393,13 @@ MIT License - See LICENSE for details
 Contributions are welcome! Please open an issue or PR.
 
 ## Changelog
+
+### v2.2.0 - ClickHouse Persistent Storage & Admin User (2025-11-16)
+- Added persistent storage for ClickHouse data using Azure File Share (50GB)
+- ClickHouse data now persists across container restarts
+- Added automatic initial admin user creation with configurable credentials
+- Added LANGFUSE_INIT_USER_* environment variables for headless setup
+- Development environment cost: $41-77/mo (+$2/mo for File Share)
 
 ### v2.1.0 - Development Environment Optimization (2025-11-15)
 - Removed NAT Gateway for cost reduction

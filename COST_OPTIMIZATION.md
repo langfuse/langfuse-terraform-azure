@@ -25,10 +25,11 @@
 | Container Apps | $5-20 | CPU 0.5-1.0, Memory 1-2Gi, min 0-1 replica |
 | PostgreSQL Flexible Server | $10-30 | B_Standard_B1ms, HAなし |
 | Redis Cache (Basic C0) | $15 | 最小構成 |
-| Storage Account | $2-3 | Blob Storage LRS、公開アクセス |
+| Storage Account (Blob) | $2-3 | Blob Storage LRS、公開アクセス |
+| Storage Account (File Share 50GB) | $2.50 | ClickHouse永続ストレージ |
 | Log Analytics | $5 | 30日保持 |
 | Private Endpoints (2個) | $2 | PostgreSQL, Redis用 |
-| **合計** | **$39-75** | |
+| **合計** | **$41-77** | |
 
 ### 本番環境（推奨構成）
 | リソース | 月額概算 | 備考 |
@@ -36,13 +37,14 @@
 | Container Apps | $50-200 | CPU 2.0, Memory 4Gi, min 2 replicas |
 | PostgreSQL Flexible Server (HA) | $100-300 | GP_Standard_D4s_v3 + HA |
 | Redis Cache (Standard C1) | $50-100 | 推奨構成 |
-| Storage Account | $20 | Blob Storage GRS |
+| Storage Account (Blob) | $20 | Blob Storage GRS |
+| Storage Account (File Share 50GB) | $2.50-10 | ClickHouse永続ストレージ（冗長化） |
 | Log Analytics | $20-50 | 大量ログ |
 | NAT Gateway（オプション） | $30 | 固定IPが必要な場合 |
 | Private Endpoints (2-4個) | $2-4 | セキュリティ要件次第 |
 | DNS Zone（オプション） | $0.50 | カスタムドメイン使用時 |
 | Key Vault（オプション） | $0.03 | SSL証明書管理 |
-| **合計** | **$242-704** | オプション含む |
+| **合計** | **$245-714** | オプション含む |
 
 ---
 
@@ -218,52 +220,56 @@ resource "azurerm_log_analytics_workspace" "this" {
 
 ## コスト削減シナリオ
 
-### シナリオ1: 現在の構成（月額 $39-75）
+### シナリオ1: 現在の構成（月額 $41-77）
 
 **構成**:
 - ✅ NAT Gateway削除済み
 - ✅ DNS Zone削除済み
 - ✅ Key Vault削除済み
 - ✅ Storage Private Endpoint削除済み
-- ✅ Storage: LRS
-- ✅ Redis: Azure Cache Basic C0（管理型）
+- ✅ Storage: LRS (Blob + File Share 50GB)
+- ✅ ClickHouse: 永続ストレージ付き
+- ✅ Redis: Azure Managed Redis Balanced_B0
 - ✅ PostgreSQL: B_Standard_B1ms
 - ✅ Private Endpoints: PostgreSQL, Redis用のみ (2個)
 - ✅ Log Analytics: 30日保持
 - ✅ Container Apps: 可変スケーリング
 
-**月額コスト**: $39-75
+**月額コスト**: $41-77
 
 **推奨**: 開発/テスト環境向けのバランス型構成
 
 ---
 
-### シナリオ2: 超低コスト開発環境（月額 $22-40）
+### シナリオ2: 超低コスト開発環境（月額 $22-36）
 
 **現在の構成からの追加変更**:
 - Redis → Dragonfly on Container Apps
 - Private Endpoint削除（Public + Firewall）
 - Log Analytics: 7日保持
 - Container Apps: min 0 replicas（スケールtoゼロ）
+- File Share: 最小10GB
 
 **月額コスト**:
 - Container Apps: $3-10（スケールtoゼロ）
 - PostgreSQL: $10
 - Dragonfly: $3-5
-- Storage: $2-3
+- Storage (Blob): $2-3
+- Storage (File Share 10GB): $0.50
 - Log Analytics: $2-3
-- **合計: $20-34**
+- **合計: $22-36**
 
 **トレードオフ**:
 - さらにセキュリティが低下（個人プロジェクトのみ推奨）
 - Private Endpoint なし
 - 短いログ保持期間
+- ClickHouse用File Shareを10GBに削減
 
 **削減額**: 現在の構成から約 $19-41削減
 
 ---
 
-### シナリオ3: コスト最適化本番環境（月額 $242-504）
+### シナリオ3: コスト最適化本番環境（月額 $245-514）
 
 **変更内容**:
 - NAT Gateway追加（固定IP必要な場合）
@@ -272,11 +278,12 @@ resource "azurerm_log_analytics_workspace" "this" {
 - Redis: Standard C1またはDragonfly
 - Private Endpoint: 全リソース用
 - PostgreSQL: GP_Standard_D2s_v3 + HA
-- Storage: GRS
+- Storage (Blob): GRS
+- Storage (File Share): 50-100GB、冗長化オプション
 - Log Analytics: 90日保持
 - Container Apps: 適切なスケーリング（min 2 replicas）
 
-**月額コスト**: $242-504
+**月額コスト**: $245-514
 
 **推奨**: 本番環境で必要な機能とコストのバランス
 
@@ -332,7 +339,7 @@ use_encryption_key  = false  # 暗号化キーなし
 use_ddos_protection = false  # DDoS保護なし
 ```
 
-**月額コスト**: 約 $39-75
+**月額コスト**: 約 $41-77
 
 ---
 
@@ -374,8 +381,8 @@ az consumption usage list \
 
 | 環境 | 元の構成 | 現在の構成 | 超低コスト構成 | 削減額 |
 |-----|---------|----------|------------|--------|
-| 開発 | $53-117 | **$39-75** | $20-34 | -$14～83 |
-| 本番 | $275-704 | - | $242-504 | - |
+| 開発 | $53-117 | **$41-77** | $22-36 | -$12～81 |
+| 本番 | $275-704 | - | $245-514 | - |
 
 ### 既に実施済みの最適化
 
@@ -385,8 +392,9 @@ az consumption usage list \
 3. ✅ Key Vault削除
 4. ✅ Storage Private Endpoint削除
 5. ✅ Storage LRS化
+6. ✅ ClickHouse永続ストレージ追加（File Share 50GB）
 
-→ **月額 $39-75** (元の構成から約 25-50%削減済み)
+→ **月額 $41-77** (元の構成から約 25-50%削減済み、ClickHouse永続化含む)
 
 ### さらなる削減の選択肢
 
@@ -395,17 +403,19 @@ az consumption usage list \
 2. PostgreSQL/Redis Private Endpoint削除
 3. Log Analytics 7日保持
 4. Container Apps スケールtoゼロ
+5. File Share容量削減（50GB → 10GB）
 
-→ **月額 $20-34** (現在の構成からさらに -$19～41)
+→ **月額 $22-36** (現在の構成からさらに -$19～41)
 
 **本番環境**:
 1. 必要に応じてNAT Gateway、DNS Zone、Key Vault追加
 2. Redis: Standard C1またはDragonfly（検証後）
-3. Storage GRS
-4. Private Endpoint: 全リソース用
-5. 適切なPostgreSQL SKU選択（GP + HA）
+3. Storage (Blob): GRS
+4. Storage (File Share): 50-100GB、冗長化オプション
+5. Private Endpoint: 全リソース用
+6. 適切なPostgreSQL SKU選択（GP + HA）
 
-→ **月額 $242-504**
+→ **月額 $245-514**
 
 ---
 
@@ -418,5 +428,5 @@ az consumption usage list \
 
 ---
 
-**最終更新**: 2025-11-15
-**対象バージョン**: Container Apps版（開発環境最適化済み）
+**最終更新**: 2025-11-16
+**対象バージョン**: Container Apps版（開発環境最適化済み + ClickHouse永続化）

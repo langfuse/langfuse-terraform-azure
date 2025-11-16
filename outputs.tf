@@ -61,3 +61,9 @@ output "storage_account_key" {
   value       = azurerm_storage_account.this.primary_access_key
   sensitive   = true
 }
+
+output "langfuse_admin_password" {
+  description = "The initial Langfuse admin user password"
+  value       = random_password.langfuse_admin_password.result
+  sensitive   = true
+}
