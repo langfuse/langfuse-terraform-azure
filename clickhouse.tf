@@ -18,7 +18,7 @@ resource "azurerm_container_app" "clickhouse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "auth-enabled"
+    revision_suffix = "auth-password"
 
     container {
       name   = "clickhouse"
@@ -27,7 +27,7 @@ resource "azurerm_container_app" "clickhouse" {
       memory = "2Gi"
 
       # Enable network access for internal communication
-      # Setting empty password allows network access without authentication
+      # Using a simple password for internal-only access (secured by Internal Ingress)
       env {
         name  = "CLICKHOUSE_USER"
         value = "default"
@@ -35,7 +35,7 @@ resource "azurerm_container_app" "clickhouse" {
 
       env {
         name  = "CLICKHOUSE_PASSWORD"
-        value = ""
+        value = random_password.clickhouse_password.result
       }
 
       volume_mounts {

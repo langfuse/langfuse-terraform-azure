@@ -23,7 +23,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "clickhouse-auth"
+    revision_suffix = "clickhouse-pw"
 
     container {
       name   = "langfuse"
@@ -216,12 +216,12 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-migration-url"
-    value = "clickhouse://default:@${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
+    value = "clickhouse://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
   }
 
   secret {
     name  = "clickhouse-url"
-    value = "clickhouse://default:@${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
+    value = "clickhouse://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
   }
 
   secret {
