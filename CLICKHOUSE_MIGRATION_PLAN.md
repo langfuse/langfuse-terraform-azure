@@ -7,6 +7,9 @@
 **作成日**: 2025-11-16
 **対象**: ClickHouse (Analytics Database)
 
+> **⚠️ 重要**: 移行前に必ず [ROLLBACK.md](./ROLLBACK.md) を確認してください。
+> 動作確認済みの構成（コミット `d3665e7`）へのロールバック手順が記載されています。
+
 ---
 
 ## 1. 現状の問題点
@@ -422,15 +425,34 @@ az containerapp revision restart \
 
 #### ロールバック手順
 
-問題が発生した場合：
+問題が発生した場合は、動作確認済みの構成に戻してください。
+
+**📋 詳細なロールバック手順は [ROLLBACK.md](./ROLLBACK.md) を参照**
+
+**クイックロールバック**:
 
 ```bash
-# 元のサイドカー構成に戻す
+# Method 1: タグを使う（推奨）
+git checkout v2.2.0-stable
+terraform apply
+
+# Method 2: コミットハッシュを使う
+git checkout d3665e7
+terraform apply
+
+# Method 3: 前のコミットに戻す
 git revert HEAD
 terraform apply
 ```
 
-または、サイドカー構成の`container_apps.tf`を保持しておき、手動で戻す。
+**動作確認済みコミット情報**:
+- Gitタグ: `v2.2.0-stable`
+- コミットハッシュ: `d3665e7`
+- コミットメッセージ: "Add persistent storage for ClickHouse data"
+- 日時: 2025-11-16 12:43:54 UTC
+- 構成: ClickHouseサイドカーパターン + 永続ストレージ
+
+詳細な検証手順、トラブルシューティング、段階的なロールバック方法は [ROLLBACK.md](./ROLLBACK.md) を参照してください。
 
 ---
 

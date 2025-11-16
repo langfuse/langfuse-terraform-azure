@@ -400,6 +400,7 @@ Contributions are welcome! Please open an issue or PR.
 - Added automatic initial admin user creation with configurable credentials
 - Added LANGFUSE_INIT_USER_* environment variables for headless setup
 - Development environment cost: $41-77/mo (+$2/mo for File Share)
+- **Working commit**: `d3665e7` (rollback reference - see [ROLLBACK.md](./ROLLBACK.md))
 
 ### v2.1.0 - Development Environment Optimization (2025-11-15)
 - Removed NAT Gateway for cost reduction
