@@ -185,25 +185,8 @@ resource "azurerm_container_app" "langfuse" {
       }
     }
 
-    # ClickHouse sidecar container
-    container {
-      name   = "clickhouse"
-      image  = "clickhouse/clickhouse-server:latest-alpine"
-      cpu    = 1.0
-      memory = "2Gi"
-
-      volume_mounts {
-        name = "clickhouse-data"
-        path = "/var/lib/clickhouse"
-      }
-    }
-
-    # Persistent volume for ClickHouse data
-    volume {
-      name         = "clickhouse-data"
-      storage_type = "AzureFile"
-      storage_name = azurerm_container_app_environment_storage.clickhouse.name
-    }
+    # ClickHouse sidecar removed - now using dedicated Container App
+    # See clickhouse.tf for dedicated ClickHouse Container App
 
     min_replicas = var.container_app_min_replicas
     max_replicas = var.container_app_max_replicas
@@ -231,12 +214,12 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-migration-url"
-    value = "clickhouse://localhost:9000/default"
+    value = "https://${azurerm_container_app.clickhouse.ingress[0].fqdn}/default"
   }
 
   secret {
     name  = "clickhouse-url"
-    value = "http://localhost:8123/default"
+    value = "https://${azurerm_container_app.clickhouse.ingress[0].fqdn}/default"
   }
 
   secret {
