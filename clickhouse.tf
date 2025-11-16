@@ -18,6 +18,8 @@ resource "azurerm_container_app" "clickhouse" {
   revision_mode                = "Single"
 
   template {
+    revision_suffix = "auth-enabled"
+
     container {
       name   = "clickhouse"
       image  = "clickhouse/clickhouse-server:latest-alpine"
