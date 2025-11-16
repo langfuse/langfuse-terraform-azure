@@ -137,7 +137,7 @@ resource "azurerm_container_app" "langfuse" {
 
       env {
         name        = "CLICKHOUSE_MIGRATION_URL"
-        secret_name = "clickhouse-url"
+        secret_name = "clickhouse-migration-url"
       }
 
       env {
@@ -215,6 +215,11 @@ resource "azurerm_container_app" "langfuse" {
   secret {
     name  = "storage-access-key"
     value = azurerm_storage_account.this.primary_access_key
+  }
+
+  secret {
+    name  = "clickhouse-migration-url"
+    value = "clickhouse://default:${random_password.clickhouse_password.result}@localhost:9000/default"
   }
 
   secret {
