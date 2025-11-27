@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-node-tls"
+    revision_suffix = "redis-tls-noverify"
 
     container {
       name   = "langfuse"
@@ -112,9 +112,10 @@ resource "azurerm_container_app" "langfuse" {
 
       # Disable TLS certificate verification for Private Endpoint
       # (certificate doesn't include the Private Endpoint IP in SANs)
+      # Using Langfuse-specific env var instead of NODE_TLS_REJECT_UNAUTHORIZED
       env {
-        name  = "NODE_TLS_REJECT_UNAUTHORIZED"
-        value = "0"
+        name  = "REDIS_TLS_REJECT_UNAUTHORIZED"
+        value = "false"
       }
 
       env {
