@@ -85,11 +85,14 @@ resource "azurerm_container_app" "clickhouse" {
     max_replicas = 1
   }
 
-  # Internal Ingress for ClickHouse HTTP protocol (port 8123)
-  # Using HTTP instead of TCP (9000) for better Container Apps compatibility
+  # Internal Ingress for ClickHouse native protocol (port 9000)
+  # TCP transport required for native ClickHouse protocol used by CLICKHOUSE_MIGRATION_URL
+  # HTTP (8123) is added via additionalPortMappings in azapi_update_resource
   ingress {
-    external_enabled = false  # Internal only
-    target_port      = 8123   # ClickHouse HTTP protocol
+    external_enabled = false   # Internal only
+    target_port      = 9000    # ClickHouse native protocol
+    exposed_port     = 9000    # Required for TCP transport
+    transport        = "tcp"   # TCP transport for native protocol
 
     traffic_weight {
       percentage      = 100
@@ -109,8 +112,10 @@ resource "azurerm_container_app" "clickhouse" {
   }
 }
 
-# Update ClickHouse Container App with NFS volume configuration
-# Using azapi_update_resource because azurerm_container_app doesn't support NFS volumes
+# Update ClickHouse Container App with NFS volume and TCP+HTTP ingress configuration
+# Using azapi_update_resource because azurerm_container_app doesn't support:
+# - NFS volumes
+# - additionalPortMappings for multiple ports
 resource "azapi_update_resource" "clickhouse_volumes" {
   type        = "Microsoft.App/containerApps@2024-03-01"
   resource_id = azurerm_container_app.clickhouse.id
@@ -125,13 +130,22 @@ resource "azapi_update_resource" "clickhouse_volumes" {
           }
         ]
         ingress = {
-          external   = false
-          targetPort = 8123
-          transport  = "http"
+          external    = false
+          targetPort  = 9000
+          exposedPort = 9000
+          transport   = "tcp"
           traffic = [
             {
               weight         = 100
               latestRevision = true
+            }
+          ]
+          # HTTP (8123) for CLICKHOUSE_URL - internal communication
+          additionalPortMappings = [
+            {
+              external    = false
+              targetPort  = 8123
+              exposedPort = 8123
             }
           ]
         }

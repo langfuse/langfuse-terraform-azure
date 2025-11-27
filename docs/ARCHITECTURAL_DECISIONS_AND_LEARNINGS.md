@@ -10,7 +10,7 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
 *   **Environment**: `internal = true` (VNet 統合、外部公開なし)
 *   **Ingress**:
     *   **Langfuse**: Application Gateway 経由で HTTP (80) を受信。
-    *   **ClickHouse**: VNet 内部からの **HTTP (8123) のみ**。TCP (9000) は使用しない（後述の 2.6 参照）。
+    *   **ClickHouse**: VNet 内部からの **TCP (9000) + HTTP (8123)**。TCP は migration 用、HTTP はデータアクセス用。
 *   **Storage**: Azure Files NFS (Premium)
 
 この構成により、ClickHouse を安全に VNet 内に閉じ込めつつ、Langfuse をインターネットに公開し、かつ両者間の安定した内部通信を実現しています。
@@ -57,25 +57,32 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
 *   **原因**: Container App が起動している状態で、紐付いている Environment Storage (NFS設定) を削除しようとするとロックがかかる。
 *   **解決策**: アプリ (`azurerm_container_app`) を先に削除 (`terraform destroy -target=...`) してから、Environment を削除する手順が必要。
 
-### 2.6 Container Apps 間通信: TCP Ingress の制約
+### 2.6 Container Apps 間通信: TCP Ingress の設定
 
 *   **課題**: Internal Environment で ClickHouse を別 Container App として配置し、TCP Ingress (port 9000) で公開したが、Langfuse から接続すると `dial tcp <ip>:9000: i/o timeout` が発生。
     *   DNS 解決は成功し、IP アドレスに解決されるが、TCP 接続がタイムアウトする。
     *   サイドカー構成では同じ設定で動作していた。
-*   **原因**: Container Apps の TCP Ingress は HTTP Ingress と比較して制約や不安定な挙動がある。
-    *   Internal Environment での TCP transport は、追加の設定や特定の条件が必要な場合がある。
-    *   `additionalPortMappings` を使用した複数ポート公開も安定しない。
-*   **解決策**: **HTTP (8123) のみを使用**。
-    *   ClickHouse は HTTP インターフェース (8123) でも全機能を提供。
-    *   `CLICKHOUSE_URL` と `CLICKHOUSE_MIGRATION_URL` の両方を HTTP 形式 (`http://...@<app-name>:8123`) に変更。
-    *   Internal Environment 内では、短い名前 (`<app-name>`) で他の Container App にアクセス可能。
+*   **原因**: TCP Ingress の設定が不完全だった可能性。
+    *   `exposed_port` の明示的設定が必要。
+    *   `additionalPortMappings` を使用する場合は `azapi_update_resource` で設定。
+*   **解決策**: **TCP (9000) を primary、HTTP (8123) を additionalPortMappings で設定**。
+    *   Langfuse は `CLICKHOUSE_MIGRATION_URL` に TCP (9000)、`CLICKHOUSE_URL` に HTTP (8123) を必要とする。
+    *   Internal Environment 内では、短い名前 (`<app-name>:<exposed_port>`) で他の Container App にアクセス可能。
+
+### 2.7 Langfuse の ClickHouse 接続要件
+
+*   **要件**: Langfuse は 2 つの異なるプロトコルで ClickHouse に接続する。
+    *   `CLICKHOUSE_URL`: HTTP (8123) - データアクセス用
+    *   `CLICKHOUSE_MIGRATION_URL`: Native TCP (9000) - マイグレーション用
+*   **参考**: [Langfuse ClickHouse Documentation](https://langfuse.com/self-hosting/infrastructure/clickhouse)
+*   **注意**: HTTP-only 動作は現時点でサポートされていない ([Discussion #5458](https://github.com/orgs/langfuse/discussions/5458))
 
 ---
 
 ## 3. 今後のメンテナンスへの推奨 (Recommendations)
 
 1.  **API バージョン**: ACA は進化が早いため、`azapi` で使用する `apiVersion` は定期的に見直すこと（現在は `2024-03-01` を使用）。
-2.  **Ingress**: Container Apps 間通信では HTTP Ingress を優先すること。TCP Ingress は制約が多く不安定なため、ClickHouse は HTTP (8123) のみを使用。
-3.  **内部通信**: Internal Environment 内では、短い名前 (`<app-name>`) で他の Container App にアクセス可能。FQDN よりも短い名前を推奨。
+2.  **Ingress**: TCP Ingress を使用する場合は `exposed_port` を明示的に設定すること。複数ポートは `additionalPortMappings` で設定。
+3.  **内部通信**: Internal Environment 内では、短い名前 (`<app-name>:<exposed_port>`) で他の Container App にアクセス可能。FQDN よりも短い名前を推奨。
 4.  **デバッグ**: 接続問題が発生した場合、一時的に `external_enabled = true` にして外部から `curl` で疎通確認を行う切り分けが有効。
 

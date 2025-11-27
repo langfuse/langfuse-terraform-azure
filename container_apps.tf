@@ -228,11 +228,13 @@ resource "azurerm_container_app" "langfuse" {
     value = azurerm_storage_account.this.primary_access_key
   }
 
-  # Using short name for internal Container Apps communication
-  # In Internal Environment, apps can communicate via <app-name> directly
+  # Using app name for internal Container Apps communication
+  # In Internal Environment, apps can communicate via <app-name>:<exposed_port>
+  # CLICKHOUSE_MIGRATION_URL: Native protocol (TCP 9000) for migrations
+  # CLICKHOUSE_URL: HTTP protocol (8123) for data access
   secret {
     name  = "clickhouse-migration-url"
-    value = "http://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.name}:8123"
+    value = "clickhouse://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.name}:9000"
   }
 
   secret {
