@@ -85,10 +85,8 @@ resource "azurerm_container_app" "clickhouse" {
         path = "/etc/clickhouse-server/config.d"
       }
 
-      volume_mounts {
-        name = "clickhouse-users"
-        path = "/etc/clickhouse-server/users.d"
-      }
+      # Note: clickhouse-users volume_mount is added via azapi_update_resource
+      # because azurerm_container_app lifecycle ignores volume changes
 
       startup_probe {
         transport               = "HTTP"
@@ -146,7 +144,8 @@ resource "azurerm_container_app" "clickhouse" {
     ignore_changes = [
       ingress,
       template[0].revision_suffix,
-      template[0].volume  # Volume is updated by azapi_update_resource to use NFS
+      template[0].volume,     # Volume is updated by azapi_update_resource to use NFS
+      template[0].container   # Container is updated by azapi_update_resource for volume mounts
     ]
   }
 }
@@ -208,6 +207,56 @@ resource "azapi_update_resource" "clickhouse_volumes" {
         }
       }
       template = {
+        containers = [
+          {
+            name   = "clickhouse"
+            image  = "clickhouse/clickhouse-server:latest-alpine"
+            resources = {
+              cpu    = 2.0
+              memory = "4Gi"
+            }
+            env = [
+              {
+                name  = "CLICKHOUSE_USER"
+                value = "default"
+              },
+              {
+                name  = "CLICKHOUSE_PASSWORD"
+                value = random_password.clickhouse_password.result
+              },
+              {
+                name  = "CLICKHOUSE_REVISION"
+                value = "8"
+              }
+            ]
+            volumeMounts = [
+              {
+                volumeName = "clickhouse-data"
+                mountPath  = "/var/lib/clickhouse"
+              },
+              {
+                volumeName = "clickhouse-config"
+                mountPath  = "/etc/clickhouse-server/config.d"
+              },
+              {
+                volumeName = "clickhouse-users"
+                mountPath  = "/etc/clickhouse-server/users.d"
+              }
+            ]
+            probes = [
+              {
+                type = "Startup"
+                httpGet = {
+                  port = 8123
+                  path = "/ping"
+                }
+                initialDelaySeconds = 30
+                periodSeconds       = 10
+                failureThreshold    = 30
+              }
+            ]
+          }
+        ]
         volumes = [
           {
             name        = "clickhouse-data"
