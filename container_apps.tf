@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-tls-nocheck"
+    revision_suffix = "redis-cluster"
 
     container {
       name   = "langfuse"
@@ -121,6 +121,17 @@ resource "azurerm_container_app" "langfuse" {
       env {
         name  = "REDIS_TLS_CHECK_SERVER_IDENTITY"
         value = "false"
+      }
+
+      # Azure Managed Redis uses OSSCluster mode
+      env {
+        name  = "REDIS_CLUSTER_ENABLED"
+        value = "true"
+      }
+
+      env {
+        name  = "REDIS_CLUSTER_NODES"
+        value = "${local.redis_host}:${local.redis_port}"
       }
 
       env {
