@@ -186,13 +186,23 @@ resource "azurerm_container_app" "langfuse" {
       }
 
       env {
-        name        = "CLICKHOUSE_MIGRATION_URL"
-        secret_name = "clickhouse-migration-url"
+        name  = "CLICKHOUSE_MIGRATION_URL"
+        value = "clickhouse://${azurerm_container_app.clickhouse.name}:9000"
       }
 
       env {
-        name        = "CLICKHOUSE_URL"
-        secret_name = "clickhouse-url"
+        name  = "CLICKHOUSE_URL"
+        value = "http://${azurerm_container_app.clickhouse.name}:8123"
+      }
+
+      env {
+        name  = "CLICKHOUSE_USER"
+        value = "default"
+      }
+
+      env {
+        name        = "CLICKHOUSE_PASSWORD"
+        secret_name = "clickhouse-password"
       }
 
       env {
@@ -262,18 +272,11 @@ resource "azurerm_container_app" "langfuse" {
     value = azurerm_storage_account.this.primary_access_key
   }
 
-  # Using app name for internal Container Apps communication
-  # In Internal Environment, apps can communicate via <app-name>:<exposed_port>
-  # CLICKHOUSE_MIGRATION_URL: Native protocol (TCP 9000) for migrations
-  # CLICKHOUSE_URL: HTTP protocol (8123) for data access
+  # ClickHouse password for authentication
+  # Langfuse uses CLICKHOUSE_USER and CLICKHOUSE_PASSWORD separately from the URLs
   secret {
-    name  = "clickhouse-migration-url"
-    value = "clickhouse://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.name}:9000"
-  }
-
-  secret {
-    name  = "clickhouse-url"
-    value = "http://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.name}:8123"
+    name  = "clickhouse-password"
+    value = random_password.clickhouse_password.result
   }
 
   secret {

@@ -74,7 +74,22 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
 *   **要件**: Langfuse は 2 つの異なるプロトコルで ClickHouse に接続する。
     *   `CLICKHOUSE_URL`: HTTP (8123) - データアクセス用
     *   `CLICKHOUSE_MIGRATION_URL`: Native TCP (9000) - マイグレーション用
-*   **参考**: [Langfuse ClickHouse Documentation](https://langfuse.com/self-hosting/infrastructure/clickhouse)
+*   **重要**: URL には認証情報を埋め込まない。代わりに以下の環境変数を別途設定する。
+    *   `CLICKHOUSE_USER`: ユーザー名 (通常 `default`)
+    *   `CLICKHOUSE_PASSWORD`: パスワード
+*   **正しい形式**:
+    ```
+    CLICKHOUSE_URL=http://<app-name>:8123
+    CLICKHOUSE_MIGRATION_URL=clickhouse://<app-name>:9000
+    CLICKHOUSE_USER=default
+    CLICKHOUSE_PASSWORD=<password>
+    ```
+*   **誤った形式** (認証エラーになる):
+    ```
+    CLICKHOUSE_URL=http://default:password@<app-name>:8123
+    CLICKHOUSE_MIGRATION_URL=clickhouse://default:password@<app-name>:9000
+    ```
+*   **参考**: [Langfuse ClickHouse Documentation](https://langfuse.com/self-hosting/deployment/infrastructure/clickhouse)
 *   **注意**: HTTP-only 動作は現時点でサポートされていない ([Discussion #5458](https://github.com/orgs/langfuse/discussions/5458))
 
 ### 2.8 Application Gateway と Internal Environment の DNS 解決
@@ -103,8 +118,12 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
 ### 2.9 ClickHouse パスワード認証エラー
 
 *   **課題**: Langfuse から ClickHouse に接続すると `Authentication failed: password is incorrect` エラーが発生。
-*   **原因**: ClickHouse の `CLICKHOUSE_PASSWORD` 環境変数は**初回起動時のみ**有効。NFS 永続ストレージに古いパスワードのユーザー情報が残っている場合、環境変数は無視される。
-*   **解決策**: **NFS データをクリアして ClickHouse を再初期化**。
+*   **原因 1 (主要)**: **URL 形式の問題**。Langfuse は URL に認証情報を埋め込む形式をサポートしていない。
+    *   ❌ 誤: `clickhouse://default:password@host:9000`
+    *   ✅ 正: `clickhouse://host:9000` + 別途 `CLICKHOUSE_USER` と `CLICKHOUSE_PASSWORD` を設定
+*   **原因 2 (NFS の場合)**: ClickHouse の `CLICKHOUSE_PASSWORD` 環境変数は**初回起動時のみ**有効。NFS 永続ストレージに古いパスワードのユーザー情報が残っている場合、環境変数は無視される。
+*   **解決策 1**: URL から認証情報を削除し、`CLICKHOUSE_USER` と `CLICKHOUSE_PASSWORD` を別の環境変数として設定。
+*   **解決策 2 (NFS の場合)**: NFS データをクリアして ClickHouse を再初期化。
     1.  `terraform destroy` で環境を削除
     2.  `clickhouse.tf` の `random_password.clickhouse_password.keepers.version` をインクリメント
     3.  `terraform apply` で再構築
