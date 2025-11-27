@@ -100,9 +100,55 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
     ```
 *   **参考**: [Protect Azure Container Apps with Application Gateway and WAF](https://learn.microsoft.com/en-us/azure/container-apps/waf-app-gateway)
 
+### 2.9 ClickHouse パスワード認証エラー
+
+*   **課題**: Langfuse から ClickHouse に接続すると `Authentication failed: password is incorrect` エラーが発生。
+*   **原因**: ClickHouse の `CLICKHOUSE_PASSWORD` 環境変数は**初回起動時のみ**有効。NFS 永続ストレージに古いパスワードのユーザー情報が残っている場合、環境変数は無視される。
+*   **解決策**: **NFS データをクリアして ClickHouse を再初期化**。
+    1.  `terraform destroy` で環境を削除
+    2.  `clickhouse.tf` の `random_password.clickhouse_password.keepers.version` をインクリメント
+    3.  `terraform apply` で再構築
+*   **パスワード再生成の仕組み**:
+    ```hcl
+    resource "random_password" "clickhouse_password" {
+      keepers = {
+        version = "1"  # この値を変更するとパスワードが再生成される
+      }
+    }
+    ```
+
 ---
 
-## 3. 今後のメンテナンスへの推奨 (Recommendations)
+## 3. 運用手順 (Operations)
+
+### 3.1 terraform destroy の実行手順
+
+デッドロックを避けるため、以下の順序で削除する必要があります：
+
+```bash
+# 1. Container Apps を先に削除
+terraform destroy \
+  -target=azurerm_container_app.langfuse \
+  -target=azurerm_container_app.clickhouse \
+  -target=azapi_update_resource.clickhouse_volumes
+
+# 2. NFS Storage を削除
+terraform destroy \
+  -target=azapi_resource.clickhouse_nfs
+
+# 3. 残りのリソースを削除
+terraform destroy
+```
+
+### 3.2 ClickHouse パスワードリセット手順
+
+1.  `clickhouse.tf` の `keepers.version` をインクリメント
+2.  上記の destroy 手順を実行
+3.  `terraform apply` で再構築
+
+---
+
+## 4. 今後のメンテナンスへの推奨 (Recommendations)
 
 1.  **API バージョン**: ACA は進化が早いため、`azapi` で使用する `apiVersion` は定期的に見直すこと（現在は `2024-03-01` を使用）。
 2.  **Ingress**: TCP Ingress を使用する場合は `exposed_port` を明示的に設定すること。複数ポートは `additionalPortMappings` で設定。

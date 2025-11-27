@@ -6,6 +6,12 @@ resource "random_password" "clickhouse_password" {
   min_lower   = 1
   min_upper   = 1
   min_numeric = 1
+
+  # Change this value to force password regeneration
+  # Useful when NFS data is cleared and ClickHouse needs reinitialization
+  keepers = {
+    version = "1"
+  }
 }
 
 # Dedicated ClickHouse Container App
