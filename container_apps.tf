@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-tls"
+    revision_suffix = "redis-tls-v2"
 
     container {
       name   = "langfuse"
@@ -105,8 +105,9 @@ resource "azurerm_container_app" "langfuse" {
       }
 
       # Required for Azure Managed Redis with Encrypted client protocol
+      # Note: Use REDIS_TLS_ENABLED (not REDIS_TLS) for Langfuse v3.28.0+
       env {
-        name  = "REDIS_TLS"
+        name  = "REDIS_TLS_ENABLED"
         value = "true"
       }
 
