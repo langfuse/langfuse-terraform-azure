@@ -271,4 +271,8 @@ resource "azapi_update_resource" "clickhouse_volumes" {
   }
 
   depends_on = [azurerm_container_app.clickhouse]
+
+  lifecycle {
+    ignore_changes = [output]
+  }
 }
