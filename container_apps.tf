@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-connstr"
+    revision_suffix = "redis-notls-verify"
 
     container {
       name   = "langfuse"
@@ -245,9 +245,11 @@ resource "azurerm_container_app" "langfuse" {
   }
 
   # Redis connection string with rediss:// for TLS
+  # tls[rejectUnauthorized]=false is needed because Private Endpoint IP
+  # is not in the Redis certificate's Subject Alternative Names
   secret {
     name  = "redis-connection-string"
-    value = "rediss://:${local.redis_password}@${local.redis_host}:${local.redis_port}"
+    value = "rediss://:${local.redis_password}@${local.redis_host}:${local.redis_port}?tls[rejectUnauthorized]=false"
   }
 
   secret {
