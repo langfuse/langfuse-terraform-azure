@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "clickhouse-pw"
+    revision_suffix = "clickhouse-auth"
 
     container {
       name   = "langfuse"
