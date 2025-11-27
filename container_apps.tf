@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-notls-verify"
+    revision_suffix = "redis-node-tls"
 
     container {
       name   = "langfuse"
@@ -89,11 +89,32 @@ resource "azurerm_container_app" "langfuse" {
         value = "postgresql://${azurerm_postgresql_flexible_server.this.administrator_login}:${azurerm_postgresql_flexible_server.this.administrator_password}@${azurerm_private_endpoint.postgres.private_service_connection[0].private_ip_address}:5432/${azurerm_postgresql_flexible_server_database.langfuse.name}?sslmode=require"
       }
 
-      # Use connection string format with rediss:// for TLS
+      env {
+        name  = "REDIS_HOST"
+        value = local.redis_host
+      }
+
+      env {
+        name  = "REDIS_PORT"
+        value = local.redis_port
+      }
+
+      env {
+        name        = "REDIS_AUTH"
+        secret_name = "redis-password"
+      }
+
       # Azure Managed Redis with Encrypted client protocol requires TLS
       env {
-        name        = "REDIS_CONNECTION_STRING"
-        secret_name = "redis-connection-string"
+        name  = "REDIS_TLS_ENABLED"
+        value = "true"
+      }
+
+      # Disable TLS certificate verification for Private Endpoint
+      # (certificate doesn't include the Private Endpoint IP in SANs)
+      env {
+        name  = "NODE_TLS_REJECT_UNAUTHORIZED"
+        value = "0"
       }
 
       env {
@@ -244,12 +265,9 @@ resource "azurerm_container_app" "langfuse" {
     max_replicas = var.container_app_max_replicas
   }
 
-  # Redis connection string with rediss:// for TLS
-  # tls[rejectUnauthorized]=false is needed because Private Endpoint IP
-  # is not in the Redis certificate's Subject Alternative Names
   secret {
-    name  = "redis-connection-string"
-    value = "rediss://:${local.redis_password}@${local.redis_host}:${local.redis_port}?tls[rejectUnauthorized]=false"
+    name  = "redis-password"
+    value = local.redis_password
   }
 
   secret {
