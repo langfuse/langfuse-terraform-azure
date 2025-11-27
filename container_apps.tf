@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-tls-v3"
+    revision_suffix = "redis-connstr"
 
     container {
       name   = "langfuse"
@@ -89,32 +89,11 @@ resource "azurerm_container_app" "langfuse" {
         value = "postgresql://${azurerm_postgresql_flexible_server.this.administrator_login}:${azurerm_postgresql_flexible_server.this.administrator_password}@${azurerm_private_endpoint.postgres.private_service_connection[0].private_ip_address}:5432/${azurerm_postgresql_flexible_server_database.langfuse.name}?sslmode=require"
       }
 
+      # Use connection string format with rediss:// for TLS
+      # Azure Managed Redis with Encrypted client protocol requires TLS
       env {
-        name  = "REDIS_HOST"
-        value = local.redis_host
-      }
-
-      env {
-        name  = "REDIS_PORT"
-        value = local.redis_port
-      }
-
-      env {
-        name        = "REDIS_AUTH"
-        secret_name = "redis-password"
-      }
-
-      # Required for Azure Managed Redis with Encrypted client protocol
-      # Note: Use REDIS_TLS_ENABLED (not REDIS_TLS) for Langfuse v3.28.0+
-      env {
-        name  = "REDIS_TLS_ENABLED"
-        value = "true"
-      }
-
-      # Skip TLS certificate verification for Azure Private Endpoint
-      env {
-        name  = "NODE_TLS_REJECT_UNAUTHORIZED"
-        value = "0"
+        name        = "REDIS_CONNECTION_STRING"
+        secret_name = "redis-connection-string"
       }
 
       env {
@@ -265,9 +244,10 @@ resource "azurerm_container_app" "langfuse" {
     max_replicas = var.container_app_max_replicas
   }
 
+  # Redis connection string with rediss:// for TLS
   secret {
-    name  = "redis-password"
-    value = local.redis_password
+    name  = "redis-connection-string"
+    value = "rediss://:${local.redis_password}@${local.redis_host}:${local.redis_port}"
   }
 
   secret {
