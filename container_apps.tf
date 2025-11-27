@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "ch-auth-v2"
+    revision_suffix = "redis-tls"
 
     container {
       name   = "langfuse"
@@ -102,6 +102,12 @@ resource "azurerm_container_app" "langfuse" {
       env {
         name        = "REDIS_AUTH"
         secret_name = "redis-password"
+      }
+
+      # Required for Azure Managed Redis with Encrypted client protocol
+      env {
+        name  = "REDIS_TLS"
+        value = "true"
       }
 
       env {
