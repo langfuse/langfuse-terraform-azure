@@ -228,14 +228,16 @@ resource "azurerm_container_app" "langfuse" {
     value = azurerm_storage_account.this.primary_access_key
   }
 
+  # Using short name for internal Container Apps communication
+  # In Internal Environment, apps can communicate via <app-name> directly
   secret {
     name  = "clickhouse-migration-url"
-    value = "clickhouse://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
+    value = "http://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.name}:8123"
   }
 
   secret {
     name  = "clickhouse-url"
-    value = "http://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.ingress[0].fqdn}:8123/default"
+    value = "http://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.name}:8123"
   }
 
   secret {

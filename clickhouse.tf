@@ -59,8 +59,9 @@ resource "azurerm_container_app" "clickhouse" {
       }
 
       startup_probe {
-        transport               = "TCP"
-        port                    = 9000
+        transport               = "HTTP"
+        port                    = 8123
+        path                    = "/ping"
         initial_delay           = 30
         interval_seconds        = 10
         failure_count_threshold = 30 # Allow up to 5 minutes for startup
@@ -84,12 +85,11 @@ resource "azurerm_container_app" "clickhouse" {
     max_replicas = 1
   }
 
-  # Internal Ingress for ClickHouse native protocol (port 9000)
+  # Internal Ingress for ClickHouse HTTP protocol (port 8123)
+  # Using HTTP instead of TCP (9000) for better Container Apps compatibility
   ingress {
     external_enabled = false  # Internal only
-    target_port      = 9000   # ClickHouse native protocol
-    exposed_port     = 9000   # Required for TCP transport
-    transport        = "tcp"  # TCP transport for native protocol
+    target_port      = 8123   # ClickHouse HTTP protocol
 
     traffic_weight {
       percentage      = 100
@@ -109,9 +109,9 @@ resource "azurerm_container_app" "clickhouse" {
   }
 }
 
-# Workaround for missing additional_port_mappings in azurerm_container_app
-# Expose port 8123 (HTTP) for Langfuse application access
-resource "azapi_update_resource" "clickhouse_ingress" {
+# Update ClickHouse Container App with NFS volume configuration
+# Using azapi_update_resource because azurerm_container_app doesn't support NFS volumes
+resource "azapi_update_resource" "clickhouse_volumes" {
   type        = "Microsoft.App/containerApps@2024-03-01"
   resource_id = azurerm_container_app.clickhouse.id
 
@@ -125,21 +125,13 @@ resource "azapi_update_resource" "clickhouse_ingress" {
           }
         ]
         ingress = {
-          external      = false
-          targetPort    = 9000
-          exposedPort = 9000
-          transport   = "tcp"
+          external   = false
+          targetPort = 8123
+          transport  = "http"
           traffic = [
             {
-              weight          = 100
-              latestRevision  = true
-            }
-          ]
-          additionalPortMappings = [
-            {
-              external    = false
-              targetPort  = 8123
-              exposedPort = 8123
+              weight         = 100
+              latestRevision = true
             }
           ]
         }
