@@ -13,18 +13,22 @@ resource "random_password" "clickhouse_password" {
 # regardless of Langfuse scaling
 resource "azurerm_container_app" "clickhouse" {
   name                         = "${var.name}-clickhouse"
-  container_app_environment_id = azurerm_container_app_environment.this.id
+  container_app_environment_id = azapi_resource.container_app_environment.id
   resource_group_name          = azurerm_resource_group.this.name
   revision_mode                = "Single"
 
+  secret {
+    name  = "listen-xml"
+    value = "<clickhouse><listen_host>0.0.0.0</listen_host></clickhouse>"
+  }
+
   template {
-    revision_suffix = "auth-password"
 
     container {
       name   = "clickhouse"
       image  = "clickhouse/clickhouse-server:latest-alpine"
-      cpu    = 1.0
-      memory = "2Gi"
+      cpu    = 2.0
+      memory = "4Gi"
 
       # Enable network access for internal communication
       # Using a simple password for internal-only access (secured by Internal Ingress)
@@ -41,20 +45,38 @@ resource "azurerm_container_app" "clickhouse" {
       # Force revision update
       env {
         name  = "CLICKHOUSE_REVISION"
-        value = "2"
+        value = "7"
       }
 
       volume_mounts {
         name = "clickhouse-data"
         path = "/var/lib/clickhouse"
       }
+
+      volume_mounts {
+        name = "clickhouse-config"
+        path = "/etc/clickhouse-server/config.d"
+      }
+
+      startup_probe {
+        transport               = "TCP"
+        port                    = 9000
+        initial_delay           = 30
+        interval_seconds        = 10
+        failure_count_threshold = 30 # Allow up to 5 minutes for startup
+      }
     }
 
     # Persistent volume for ClickHouse data
     volume {
       name         = "clickhouse-data"
-      storage_type = "AzureFile"
-      storage_name = azurerm_container_app_environment_storage.clickhouse.name
+      storage_type = "EmptyDir"
+    }
+
+    # Configuration volume from secret
+    volume {
+      name         = "clickhouse-config"
+      storage_type = "Secret"
     }
 
     # Always keep exactly 1 replica
@@ -78,4 +100,71 @@ resource "azurerm_container_app" "clickhouse" {
   tags = {
     application = local.tag_name
   }
+
+  lifecycle {
+    ignore_changes = [
+      ingress,
+      template[0].revision_suffix
+    ]
+  }
+}
+
+# Workaround for missing additional_port_mappings in azurerm_container_app
+# Expose port 8123 (HTTP) for Langfuse application access
+resource "azapi_update_resource" "clickhouse_ingress" {
+  type        = "Microsoft.App/containerApps@2024-03-01"
+  resource_id = azurerm_container_app.clickhouse.id
+
+  body = {
+    properties = {
+      configuration = {
+        secrets = [
+          {
+            name  = "listen-xml"
+            value = "<clickhouse><listen_host>0.0.0.0</listen_host></clickhouse>"
+          }
+        ]
+        ingress = {
+          external      = false
+          targetPort    = 9000
+          exposedPort = 9000
+          transport   = "tcp"
+          traffic = [
+            {
+              weight          = 100
+              latestRevision  = true
+            }
+          ]
+          additionalPortMappings = [
+            {
+              external    = false
+              targetPort  = 8123
+              exposedPort = 8123
+            }
+          ]
+        }
+      }
+      template = {
+        volumes = [
+          {
+            name        = "clickhouse-data"
+            storageType = "NfsAzureFile"
+            storageName = azapi_resource.clickhouse_nfs.name
+          },
+          {
+            name        = "clickhouse-config"
+            storageType = "Secret"
+            secrets = [
+              {
+                secretRef = "listen-xml"
+                path      = "listen.xml"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+
+  depends_on = [azurerm_container_app.clickhouse]
 }

@@ -31,7 +31,15 @@ resource "azurerm_subnet" "container_apps" {
   # Service endpoints for Storage Account access
   service_endpoints = ["Microsoft.Storage"]
 
-  # Note: Do NOT add delegation here - Container App Environment will manage it automatically
+  # Delegation required for Container Apps VNet integration
+  # Delegation required for Container Apps VNet integration
+  # delegation {
+  #   name = "container-apps"
+  #   service_delegation {
+  #     name    = "Microsoft.App/environments"
+  #     actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+  #   }
+  # }
 }
 
 # Private Endpoint subnet (for PostgreSQL and Redis)
@@ -40,4 +48,25 @@ resource "azurerm_subnet" "private_endpoints" {
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.private_endpoints_subnet_address_prefix]
+}
+
+# Application Gateway subnet
+resource "azurerm_subnet" "appgw" {
+  name                 = "snet-${var.name}-appgw"
+  resource_group_name  = azurerm_resource_group.this.name
+  virtual_network_name = azurerm_virtual_network.this.name
+  address_prefixes     = ["10.224.3.0/24"]
+}
+
+# Public IP for Application Gateway
+resource "azurerm_public_ip" "appgw" {
+  name                = "pip-${var.name}-appgw"
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+
+  tags = {
+    application = local.tag_name
+  }
 }

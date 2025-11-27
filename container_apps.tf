@@ -1,15 +1,29 @@
-resource "azurerm_container_app_environment" "this" {
-  name                       = module.naming.container_app_environment.name
-  location                   = azurerm_resource_group.this.location
-  resource_group_name        = azurerm_resource_group.this.name
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
-  infrastructure_subnet_id   = azurerm_subnet.container_apps.id
-
+resource "azapi_resource" "container_app_environment" {
+  type      = "Microsoft.App/managedEnvironments@2024-03-01"
+  name      = module.naming.container_app_environment.name
+  location  = azurerm_resource_group.this.location
+  parent_id = azurerm_resource_group.this.id
   tags = {
     application = local.tag_name
   }
 
-  # Ensure subnet and provider registration are fully complete before creating the environment
+  body = {
+    properties = {
+      appLogsConfiguration = {
+        destination = "log-analytics"
+        logAnalyticsConfiguration = {
+          customerId = azurerm_log_analytics_workspace.this.workspace_id
+          sharedKey  = azurerm_log_analytics_workspace.this.primary_shared_key
+        }
+      }
+      vnetConfiguration = {
+        infrastructureSubnetId = azurerm_subnet.container_apps.id
+        internal               = true
+      }
+      zoneRedundant = false
+    }
+  }
+
   depends_on = [
     azurerm_subnet.container_apps,
     azurerm_resource_provider_registration.app
@@ -18,7 +32,7 @@ resource "azurerm_container_app_environment" "this" {
 
 resource "azurerm_container_app" "langfuse" {
   name                         = "langfuse"
-  container_app_environment_id = azurerm_container_app_environment.this.id
+  container_app_environment_id = azapi_resource.container_app_environment.id
   resource_group_name          = azurerm_resource_group.this.name
   revision_mode                = "Single"
 
@@ -221,7 +235,7 @@ resource "azurerm_container_app" "langfuse" {
 
   secret {
     name  = "clickhouse-url"
-    value = "clickhouse://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.ingress[0].fqdn}:9000/default"
+    value = "http://default:${random_password.clickhouse_password.result}@${azurerm_container_app.clickhouse.ingress[0].fqdn}:8123/default"
   }
 
   secret {
@@ -244,6 +258,7 @@ resource "azurerm_container_app" "langfuse" {
       percentage      = 100
       latest_revision = true
     }
+    allow_insecure_connections = true
   }
 
   tags = {
@@ -252,11 +267,20 @@ resource "azurerm_container_app" "langfuse" {
 }
 
 # Azure File Share storage for ClickHouse persistence
-resource "azurerm_container_app_environment_storage" "clickhouse" {
-  name                         = "clickhouse-storage"
-  container_app_environment_id = azurerm_container_app_environment.this.id
-  account_name                 = azurerm_storage_account.this.name
-  share_name                   = azurerm_storage_share.clickhouse.name
-  access_key                   = azurerm_storage_account.this.primary_access_key
-  access_mode                  = "ReadWrite"
+# Register NFS Storage in Container App Environment using AzAPI
+resource "azapi_resource" "clickhouse_nfs" {
+  type                      = "Microsoft.App/managedEnvironments/storages@2023-11-02-preview"
+  name                      = "clickhouse-nfs"
+  parent_id                 = azapi_resource.container_app_environment.id
+  schema_validation_enabled = false
+
+  body = {
+    properties = {
+      nfsAzureFile = {
+        accessMode = "ReadWrite"
+        server     = azurerm_storage_account.clickhouse_nfs.primary_file_host
+        shareName  = "/${azurerm_storage_account.clickhouse_nfs.name}/${azurerm_storage_share.clickhouse_nfs.name}"
+      }
+    }
+  }
 }

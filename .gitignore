@@ -145,3 +145,7 @@ terraform.rc
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,visualstudiocode,terraform
+
+# Local environment variables
+.envrc
+remove.tf
