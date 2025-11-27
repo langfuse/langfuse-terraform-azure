@@ -24,10 +24,44 @@ resource "azapi_resource" "container_app_environment" {
     }
   }
 
+  # Export properties for Private DNS Zone configuration
+  response_export_values = ["properties.defaultDomain", "properties.staticIp"]
+
   depends_on = [
     azurerm_subnet.container_apps,
     azurerm_resource_provider_registration.app
   ]
+}
+
+# Private DNS Zone for Internal Container Apps Environment
+# Required for Application Gateway to resolve internal Container Apps FQDNs
+resource "azurerm_private_dns_zone" "container_apps" {
+  name                = azapi_resource.container_app_environment.output.properties.defaultDomain
+  resource_group_name = azurerm_resource_group.this.name
+
+  tags = {
+    application = local.tag_name
+  }
+}
+
+# Link Private DNS Zone to VNet
+# This allows Application Gateway (and other resources in VNet) to resolve Container Apps FQDNs
+resource "azurerm_private_dns_zone_virtual_network_link" "container_apps" {
+  name                  = "link-${var.name}-container-apps"
+  resource_group_name   = azurerm_resource_group.this.name
+  private_dns_zone_name = azurerm_private_dns_zone.container_apps.name
+  virtual_network_id    = azurerm_virtual_network.this.id
+  registration_enabled  = false
+}
+
+# Wildcard A record pointing to Container Apps Environment static IP
+# This resolves all *.{defaultDomain} to the Environment's internal load balancer
+resource "azurerm_private_dns_a_record" "container_apps_wildcard" {
+  name                = "*"
+  zone_name           = azurerm_private_dns_zone.container_apps.name
+  resource_group_name = azurerm_resource_group.this.name
+  ttl                 = 300
+  records             = [azapi_resource.container_app_environment.output.properties.staticIp]
 }
 
 resource "azurerm_container_app" "langfuse" {

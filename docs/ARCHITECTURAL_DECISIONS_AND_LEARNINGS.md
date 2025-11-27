@@ -77,6 +77,29 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
 *   **参考**: [Langfuse ClickHouse Documentation](https://langfuse.com/self-hosting/infrastructure/clickhouse)
 *   **注意**: HTTP-only 動作は現時点でサポートされていない ([Discussion #5458](https://github.com/orgs/langfuse/discussions/5458))
 
+### 2.8 Application Gateway と Internal Environment の DNS 解決
+
+*   **課題**: Application Gateway のバックエンドヘルスが `Unknown` になり、「FQDN configured in the backend pool could not be resolved to an IP address」エラーが発生。
+*   **原因**: Internal Container Apps Environment の FQDN (`*.{unique-id}.{region}.azurecontainerapps.io`) は、VNet 内から DNS 解決できない。
+    *   Internal Environment は自動的に Private DNS Zone を作成しないため、手動で設定が必要。
+*   **解決策**: **Private DNS Zone を作成し、VNet にリンク**。
+    *   Private DNS Zone 名: Environment の `defaultDomain` (`{unique-id}.{region}.azurecontainerapps.io`)
+    *   ワイルドカード A レコード (`*`): Environment の `staticIp` を指す
+    *   VNet リンク: Application Gateway を含む VNet にリンク
+*   **Terraform 実装**:
+    ```hcl
+    resource "azurerm_private_dns_zone" "container_apps" {
+      name = azapi_resource.container_app_environment.output.properties.defaultDomain
+      ...
+    }
+    resource "azurerm_private_dns_a_record" "container_apps_wildcard" {
+      name    = "*"
+      records = [azapi_resource.container_app_environment.output.properties.staticIp]
+      ...
+    }
+    ```
+*   **参考**: [Protect Azure Container Apps with Application Gateway and WAF](https://learn.microsoft.com/en-us/azure/container-apps/waf-app-gateway)
+
 ---
 
 ## 3. 今後のメンテナンスへの推奨 (Recommendations)
@@ -84,5 +107,6 @@ AI アシスタントが今後のメンテナンスやトラブルシューテ�
 1.  **API バージョン**: ACA は進化が早いため、`azapi` で使用する `apiVersion` は定期的に見直すこと（現在は `2024-03-01` を使用）。
 2.  **Ingress**: TCP Ingress を使用する場合は `exposed_port` を明示的に設定すること。複数ポートは `additionalPortMappings` で設定。
 3.  **内部通信**: Internal Environment 内では、短い名前 (`<app-name>:<exposed_port>`) で他の Container App にアクセス可能。FQDN よりも短い名前を推奨。
-4.  **デバッグ**: 接続問題が発生した場合、一時的に `external_enabled = true` にして外部から `curl` で疎通確認を行う切り分けが有効。
+4.  **Private DNS Zone**: Internal Environment を Application Gateway と組み合わせる場合、Private DNS Zone の設定が必須。Environment の `defaultDomain` と `staticIp` を使用してワイルドカード A レコードを作成。
+5.  **デバッグ**: 接続問題が発生した場合、一時的に `external_enabled = true` にして外部から `curl` で疎通確認を行う切り分けが有効。
 
