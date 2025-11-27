@@ -10,7 +10,7 @@ resource "random_password" "clickhouse_password" {
   # Change this value to force password regeneration
   # Useful when NFS data is cleared and ClickHouse needs reinitialization
   keepers = {
-    version = "1"
+    version = "2"
   }
 }
 
