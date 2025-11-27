@@ -28,8 +28,9 @@ resource "azurerm_container_app" "clickhouse" {
     value = "<clickhouse><listen_host>0.0.0.0</listen_host></clickhouse>"
   }
 
-  # Explicit password configuration for default user
-  # This ensures password is set regardless of initialization state
+  # Explicit password configuration for default user in config.d
+  # Note: Cannot use users.d because Secret volumes are read-only
+  # and ClickHouse entrypoint tries to write to users.d
   secret {
     name  = "users-xml"
     value = <<-EOT
@@ -72,7 +73,7 @@ resource "azurerm_container_app" "clickhouse" {
       # Force revision update
       env {
         name  = "CLICKHOUSE_REVISION"
-        value = "8"
+        value = "9"
       }
 
       volume_mounts {
@@ -84,9 +85,6 @@ resource "azurerm_container_app" "clickhouse" {
         name = "clickhouse-config"
         path = "/etc/clickhouse-server/config.d"
       }
-
-      # Note: clickhouse-users volume_mount is added via azapi_update_resource
-      # because azurerm_container_app lifecycle ignores volume changes
 
       startup_probe {
         transport               = "HTTP"
@@ -104,15 +102,9 @@ resource "azurerm_container_app" "clickhouse" {
       storage_type = "EmptyDir"
     }
 
-    # Configuration volume from secret
+    # Configuration volume from secret (includes listen.xml and users.xml)
     volume {
       name         = "clickhouse-config"
-      storage_type = "Secret"
-    }
-
-    # Users configuration volume from secret
-    volume {
-      name         = "clickhouse-users"
       storage_type = "Secret"
     }
 
@@ -226,7 +218,7 @@ resource "azapi_update_resource" "clickhouse_volumes" {
               },
               {
                 name  = "CLICKHOUSE_REVISION"
-                value = "8"
+                value = "9"
               }
             ]
             volumeMounts = [
@@ -237,10 +229,6 @@ resource "azapi_update_resource" "clickhouse_volumes" {
               {
                 volumeName = "clickhouse-config"
                 mountPath  = "/etc/clickhouse-server/config.d"
-              },
-              {
-                volumeName = "clickhouse-users"
-                mountPath  = "/etc/clickhouse-server/users.d"
               }
             ]
             probes = [
@@ -270,16 +258,10 @@ resource "azapi_update_resource" "clickhouse_volumes" {
               {
                 secretRef = "listen-xml"
                 path      = "listen.xml"
-              }
-            ]
-          },
-          {
-            name        = "clickhouse-users"
-            storageType = "Secret"
-            secrets = [
+              },
               {
                 secretRef = "users-xml"
-                path      = "default-password.xml"
+                path      = "users.xml"
               }
             ]
           }
