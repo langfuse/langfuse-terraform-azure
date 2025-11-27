@@ -28,6 +28,27 @@ resource "azurerm_container_app" "clickhouse" {
     value = "<clickhouse><listen_host>0.0.0.0</listen_host></clickhouse>"
   }
 
+  # Explicit password configuration for default user
+  # This ensures password is set regardless of initialization state
+  secret {
+    name  = "users-xml"
+    value = <<-EOT
+      <clickhouse>
+        <users>
+          <default>
+            <password>${random_password.clickhouse_password.result}</password>
+            <networks>
+              <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <access_management>1</access_management>
+          </default>
+        </users>
+      </clickhouse>
+    EOT
+  }
+
   template {
 
     container {
@@ -51,7 +72,7 @@ resource "azurerm_container_app" "clickhouse" {
       # Force revision update
       env {
         name  = "CLICKHOUSE_REVISION"
-        value = "7"
+        value = "8"
       }
 
       volume_mounts {
@@ -62,6 +83,11 @@ resource "azurerm_container_app" "clickhouse" {
       volume_mounts {
         name = "clickhouse-config"
         path = "/etc/clickhouse-server/config.d"
+      }
+
+      volume_mounts {
+        name = "clickhouse-users"
+        path = "/etc/clickhouse-server/users.d"
       }
 
       startup_probe {
@@ -83,6 +109,12 @@ resource "azurerm_container_app" "clickhouse" {
     # Configuration volume from secret
     volume {
       name         = "clickhouse-config"
+      storage_type = "Secret"
+    }
+
+    # Users configuration volume from secret
+    volume {
+      name         = "clickhouse-users"
       storage_type = "Secret"
     }
 
@@ -134,6 +166,24 @@ resource "azapi_update_resource" "clickhouse_volumes" {
           {
             name  = "listen-xml"
             value = "<clickhouse><listen_host>0.0.0.0</listen_host></clickhouse>"
+          },
+          {
+            name  = "users-xml"
+            value = <<-EOT
+              <clickhouse>
+                <users>
+                  <default>
+                    <password>${random_password.clickhouse_password.result}</password>
+                    <networks>
+                      <ip>::/0</ip>
+                    </networks>
+                    <profile>default</profile>
+                    <quota>default</quota>
+                    <access_management>1</access_management>
+                  </default>
+                </users>
+              </clickhouse>
+            EOT
           }
         ]
         ingress = {
@@ -171,6 +221,16 @@ resource "azapi_update_resource" "clickhouse_volumes" {
               {
                 secretRef = "listen-xml"
                 path      = "listen.xml"
+              }
+            ]
+          },
+          {
+            name        = "clickhouse-users"
+            storageType = "Secret"
+            secrets = [
+              {
+                secretRef = "users-xml"
+                path      = "default-password.xml"
               }
             ]
           }
