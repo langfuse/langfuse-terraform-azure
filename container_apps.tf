@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-tls-v2"
+    revision_suffix = "redis-tls-v3"
 
     container {
       name   = "langfuse"
@@ -109,6 +109,12 @@ resource "azurerm_container_app" "langfuse" {
       env {
         name  = "REDIS_TLS_ENABLED"
         value = "true"
+      }
+
+      # Skip TLS certificate verification for Azure Private Endpoint
+      env {
+        name  = "NODE_TLS_REJECT_UNAUTHORIZED"
+        value = "0"
       }
 
       env {
