@@ -7,7 +7,7 @@ resource "azurerm_managed_redis" "this" {
 
   default_database {
     access_keys_authentication_enabled = true
-    client_protocol                    = "Encrypted"
+    client_protocol                    = "Plaintext"
     clustering_policy                  = "OSSCluster"
     eviction_policy                    = "VolatileLRU"
   }
