@@ -107,7 +107,8 @@ resource "azurerm_container_app" "clickhouse" {
   lifecycle {
     ignore_changes = [
       ingress,
-      template[0].revision_suffix
+      template[0].revision_suffix,
+      template[0].volume  # Volume is updated by azapi_update_resource to use NFS
     ]
   }
 }
@@ -133,7 +134,7 @@ resource "azapi_update_resource" "clickhouse_volumes" {
           external    = false
           targetPort  = 9000
           exposedPort = 9000
-          transport   = "tcp"
+          transport   = "Tcp"  # Azure API returns PascalCase
           traffic = [
             {
               weight         = 100
