@@ -67,3 +67,13 @@ output "langfuse_admin_password" {
   value       = random_password.langfuse_admin_password.result
   sensitive   = true
 }
+
+output "app_gateway_fqdn" {
+  description = "The FQDN of the Application Gateway public IP"
+  value       = azurerm_public_ip.appgw.fqdn
+}
+
+output "langfuse_url" {
+  description = "The URL to access Langfuse (via Application Gateway)"
+  value       = var.domain != null ? "https://${var.domain}" : "http://${azurerm_public_ip.appgw.fqdn}"
+}

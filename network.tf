@@ -65,6 +65,7 @@ resource "azurerm_public_ip" "appgw" {
   location            = azurerm_resource_group.this.location
   allocation_method   = "Static"
   sku                 = "Standard"
+  domain_name_label   = var.name
 
   tags = {
     application = local.tag_name

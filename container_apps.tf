@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "redis-no-tls"
+    revision_suffix = "http-auth"
 
     container {
       name   = "langfuse"
@@ -123,8 +123,8 @@ resource "azurerm_container_app" "langfuse" {
 
       env {
         name  = "NEXTAUTH_URL"
-        # If domain is not set, use a placeholder. After first deploy, update with actual Container App FQDN
-        value = var.domain != null ? "https://${var.domain}" : "https://placeholder.local"
+        # Use custom domain with HTTPS if set, otherwise use App Gateway public IP FQDN with HTTP
+        value = var.domain != null ? "https://${var.domain}" : "http://${azurerm_public_ip.appgw.fqdn}"
       }
 
       env {
@@ -139,7 +139,8 @@ resource "azurerm_container_app" "langfuse" {
 
       env {
         name  = "LANGFUSE_CSP_ENFORCE_HTTPS"
-        value = "true"
+        # Disable HTTPS enforcement when using HTTP (no custom domain with TLS)
+        value = var.domain != null ? "true" : "false"
       }
 
       env {
