@@ -92,7 +92,7 @@ variable "worker_min_replicas" {
 variable "worker_max_replicas" {
   description = "Maximum number of replicas for Worker Container App"
   type        = number
-  default     = 5
+  default     = 1
 }
 
 variable "langfuse_image_tag" {
