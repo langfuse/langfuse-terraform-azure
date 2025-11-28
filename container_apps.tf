@@ -124,7 +124,7 @@ resource "azurerm_container_app" "langfuse" {
       env {
         name  = "NEXTAUTH_URL"
         # Use custom domain with HTTPS if set, otherwise use App Gateway public IP FQDN with HTTP
-        value = var.domain != null ? "https://${var.domain}" : "http://${var.name}.${var.location}.cloudapp.azure.com"
+        value = var.domain != null ? "https://${var.domain}" : "http://${random_id.dns_label.hex}.${var.location}.cloudapp.azure.com"
       }
 
       env {

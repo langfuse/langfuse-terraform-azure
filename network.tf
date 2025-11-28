@@ -58,6 +58,12 @@ resource "azurerm_subnet" "appgw" {
   address_prefixes     = ["10.224.3.0/24"]
 }
 
+# Random ID for unique DNS label
+resource "random_id" "dns_label" {
+  byte_length = 4
+  prefix      = "${var.name}-"
+}
+
 # Public IP for Application Gateway
 resource "azurerm_public_ip" "appgw" {
   name                = "pip-${var.name}-appgw"
@@ -65,7 +71,7 @@ resource "azurerm_public_ip" "appgw" {
   location            = azurerm_resource_group.this.location
   allocation_method   = "Static"
   sku                 = "Standard"
-  domain_name_label   = var.name
+  domain_name_label   = random_id.dns_label.hex
 
   tags = {
     application = local.tag_name
