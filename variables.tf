@@ -126,9 +126,21 @@ variable "postgres_storage_mb" {
 }
 
 variable "redis_sku_name" {
-  description = "SKU name for Azure Managed Redis. Valid values: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc. See https://azure.microsoft.com/pricing/details/managed-redis/ for options."
+  description = "SKU name for Azure Cache for Redis. Valid values: Basic, Standard, Premium."
   type        = string
-  default     = "Balanced_B0"
+  default     = "Standard"
+}
+
+variable "redis_family" {
+  description = "Redis family. C (Basic/Standard) or P (Premium)."
+  type        = string
+  default     = "C"
+}
+
+variable "redis_capacity" {
+  description = "Redis capacity. 0-6 for C family, 1-4 for P family."
+  type        = number
+  default     = 1
 }
 
 variable "use_ddos_protection" {

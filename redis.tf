@@ -1,15 +1,18 @@
-# Azure Managed Redis
-resource "azurerm_managed_redis" "this" {
-  name                = module.naming.redis_cache.name_unique
-  location            = var.location
-  resource_group_name = azurerm_resource_group.this.name
-  sku_name            = var.redis_sku_name
+# Azure Cache for Redis (Standard - non-clustered)
+# Using Standard tier to avoid CROSSSLOT issues with Bull queues
+resource "azurerm_redis_cache" "this" {
+  name                          = module.naming.redis_cache.name_unique
+  location                      = var.location
+  resource_group_name           = azurerm_resource_group.this.name
+  capacity                      = var.redis_capacity
+  family                        = var.redis_family
+  sku_name                      = var.redis_sku_name
+  non_ssl_port_enabled          = false
+  minimum_tls_version           = "1.2"
+  public_network_access_enabled = false
 
-  default_database {
-    access_keys_authentication_enabled = true
-    client_protocol                    = "Plaintext"
-    clustering_policy                  = "OSSCluster"
-    eviction_policy                    = "VolatileLRU"
+  redis_configuration {
+    maxmemory_policy = "volatile-lru"
   }
 
   tags = {
@@ -26,15 +29,15 @@ resource "azurerm_private_endpoint" "redis" {
 
   private_service_connection {
     name                           = "${var.name}-redis"
-    private_connection_resource_id = azurerm_managed_redis.this.id
+    private_connection_resource_id = azurerm_redis_cache.this.id
     is_manual_connection           = false
-    subresource_names              = ["redisEnterprise"]
+    subresource_names              = ["redisCache"]
   }
 }
 
 # Private DNS Zone for Redis
 resource "azurerm_private_dns_zone" "redis" {
-  name                = "privatelink.redisenterprise.cache.azure.net"
+  name                = "privatelink.redis.cache.windows.net"
   resource_group_name = azurerm_resource_group.this.name
 }
 
@@ -48,7 +51,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
 
 # A record for Redis private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = azurerm_managed_redis.this.name
+  name                = azurerm_redis_cache.this.name
   zone_name           = azurerm_private_dns_zone.redis.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300
@@ -58,6 +61,6 @@ resource "azurerm_private_dns_a_record" "redis" {
 # Locals for Redis connection info
 locals {
   redis_host     = azurerm_private_endpoint.redis.private_service_connection[0].private_ip_address
-  redis_port     = tostring(azurerm_managed_redis.this.default_database[0].port)
-  redis_password = azurerm_managed_redis.this.default_database[0].primary_access_key
+  redis_port     = "6380"  # SSL port for Azure Cache for Redis
+  redis_password = azurerm_redis_cache.this.primary_access_key
 }

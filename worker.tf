@@ -42,19 +42,10 @@ resource "azurerm_container_app" "langfuse_worker" {
         secret_name = "redis-password"
       }
 
+      # Azure Cache for Redis requires TLS
       env {
         name  = "REDIS_TLS_ENABLED"
-        value = "false"
-      }
-
-      env {
-        name  = "REDIS_CLUSTER_ENABLED"
         value = "true"
-      }
-
-      env {
-        name  = "REDIS_CLUSTER_NODES"
-        value = "${local.redis_host}:${local.redis_port}"
       }
 
       # Secrets (shared with web container)

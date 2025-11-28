@@ -104,21 +104,10 @@ resource "azurerm_container_app" "langfuse" {
         secret_name = "redis-password"
       }
 
-      # Private environment - TLS disabled on Azure Managed Redis
+      # Azure Cache for Redis requires TLS
       env {
         name  = "REDIS_TLS_ENABLED"
-        value = "false"
-      }
-
-      # Azure Managed Redis uses OSSCluster mode
-      env {
-        name  = "REDIS_CLUSTER_ENABLED"
         value = "true"
-      }
-
-      env {
-        name  = "REDIS_CLUSTER_NODES"
-        value = "${local.redis_host}:${local.redis_port}"
       }
 
       env {
