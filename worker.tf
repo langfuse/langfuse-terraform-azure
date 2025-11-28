@@ -79,6 +79,12 @@ resource "azurerm_container_app" "langfuse_worker" {
         value = azurerm_storage_container.this.name
       }
 
+      # Worker requires this specific env var for S3 bucket
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_BUCKET"
+        value = azurerm_storage_container.this.name
+      }
+
       env {
         name  = "S3_REGION"
         value = azurerm_storage_account.this.location
