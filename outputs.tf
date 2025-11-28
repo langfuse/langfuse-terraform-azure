@@ -70,10 +70,10 @@ output "langfuse_admin_password" {
 
 output "app_gateway_fqdn" {
   description = "The FQDN of the Application Gateway public IP"
-  value       = azurerm_public_ip.appgw.fqdn
+  value       = "${var.name}.${var.location}.cloudapp.azure.com"
 }
 
 output "langfuse_url" {
   description = "The URL to access Langfuse (via Application Gateway)"
-  value       = var.domain != null ? "https://${var.domain}" : "http://${azurerm_public_ip.appgw.fqdn}"
+  value       = var.domain != null ? "https://${var.domain}" : "http://${var.name}.${var.location}.cloudapp.azure.com"
 }
