@@ -70,10 +70,35 @@ variable "container_app_max_replicas" {
   default     = 10
 }
 
+# Worker Container App settings
+variable "worker_cpu" {
+  description = "CPU cores for Worker Container App"
+  type        = number
+  default     = 1.0
+}
+
+variable "worker_memory" {
+  description = "Memory in Gi for Worker Container App"
+  type        = number
+  default     = 2
+}
+
+variable "worker_min_replicas" {
+  description = "Minimum number of replicas for Worker Container App"
+  type        = number
+  default     = 1
+}
+
+variable "worker_max_replicas" {
+  description = "Maximum number of replicas for Worker Container App"
+  type        = number
+  default     = 5
+}
+
 variable "langfuse_image_tag" {
-  description = "Langfuse Docker image tag"
+  description = "Langfuse Docker image tag (v3+ required for worker)"
   type        = string
-  default     = "2"
+  default     = "3"
 }
 
 variable "postgres_instance_count" {
