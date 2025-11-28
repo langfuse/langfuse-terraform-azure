@@ -171,7 +171,7 @@ terraform output -raw langfuse_admin_password
 | `container_app_memory` | Memory in Gi | `2` |
 | `container_app_min_replicas` | Min replicas | `1` |
 | `container_app_max_replicas` | Max replicas | `10` |
-| `langfuse_image_tag` | Docker image tag | `"2"` |
+| `langfuse_image_tag` | Docker image tag | `"3"` |
 
 #### Database
 
@@ -311,7 +311,7 @@ Or use Log Analytics in Azure Portal.
 Update the image tag:
 
 ```hcl
-langfuse_image_tag = "2.x.x"
+langfuse_image_tag = "3.x.x"
 ```
 
 Then apply:

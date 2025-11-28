@@ -181,7 +181,7 @@ container_app_cpu          = 0.5
 container_app_memory       = 1
 container_app_min_replicas = 0  # スケールtoゼロ
 container_app_max_replicas = 3
-langfuse_image_tag        = "2"
+langfuse_image_tag        = "3"
 
 # データベース設定（開発環境向け）
 postgres_instance_count = 1  # HAなし
