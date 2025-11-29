@@ -2,17 +2,18 @@
 
 このドキュメントでは、Langfuse v3 on Azure Container Appsのコスト削減方法を説明します。
 
-## Langfuse v3 アーキテクチャの変更点
+## Container Apps版のアーキテクチャ変更点
 
-Langfuse v3では以下のアーキテクチャ変更があり、コスト構成が変わっています：
+AKS版からContainer Apps版への移行で以下のアーキテクチャ変更があり、コスト構成が変わっています。
+（両方ともLangfuse v3を使用）
 
 ### AKS版 → Container Apps版の主な変更
 
-| 変更項目 | AKS版 | Container Apps版 (v3) | コストへの影響 |
+| 変更項目 | AKS版 | Container Apps版 | コストへの影響 |
 |---------|-------|---------------------|--------------|
 | **Application Gateway** | AGIC経由で使用 | 内部環境のため新規追加 | +$20-30/月 |
 | **ClickHouse** | サイドカー（Webと同一Pod） | 専用Container App（常時起動） | +$30-60/月 |
-| **Worker** | なし（v2では不要） | 専用Container App（常時起動） | +$10-30/月 |
+| **Worker** | Pod内で動作 | 専用Container App（常時起動） | +$10-30/月 |
 | **Redis** | Azure Managed Redis (Basic) | Azure Cache for Redis (Standard) | +$25-45/月 |
 | **ClickHouse Storage** | 通常File Share | Premium NFS FileStorage | +$12-20/月 |
 
@@ -65,12 +66,17 @@ Langfuse v3では以下のアーキテクチャ変更があり、コスト構成
 
 ### AKS版との比較
 
-| 環境 | AKS版 | Container Apps版 (v3) | 差額 |
-|-----|-------|---------------------|------|
-| 開発 | $53-117 | $139-265 | +$86-148 |
-| 本番 | $275-704 | $433-935 | +$158-231 |
+| 環境 | AKS版 | Container Apps版 | 差額 |
+|-----|-------|-----------------|------|
+| 開発 | $100-145 | $139-265 | +$39-120 |
+| 本番 | $430-960 | $433-935 | ほぼ同等 |
 
-**注意**: Container Apps版はAKS版より高コストですが、以下のメリットがあります：
+**注意**: 両方ともLangfuse v3を使用。Container Apps版は運用がシンプルですが、以下の理由でやや高コスト：
+- Application Gateway（内部環境公開用）
+- Azure Cache for Redis Standard（非クラスタ必須）
+- Premium NFS（Container Apps要件）
+
+**メリット**:
 - Kubernetes知識不要でシンプルな運用
 - デプロイ時間短縮（10-18分 vs 20-30分）
 - Helmチャート管理不要
@@ -424,19 +430,19 @@ az consumption usage list \
 
 ## まとめ
 
-### コスト比較（Langfuse v3）
+### コスト比較（両方ともLangfuse v3）
 
-| 環境 | AKS版 | Container Apps版 (v3) | 最適化後 |
-|-----|-------|---------------------|---------|
-| 開発 | $53-117 | **$139-265** | $75-140 |
-| 本番 | $275-704 | **$433-935** | - |
+| 環境 | AKS版 | Container Apps版 | 最適化後 |
+|-----|-------|-----------------|---------|
+| 開発 | $100-145 | **$139-265** | $75-140 |
+| 本番 | $430-960 | **$433-935** | - |
 
-### Langfuse v3 でのコスト増加要因
+### Container Apps版でのコスト増加要因（AKS版比）
 
 | 要因 | 増加額 | 理由 |
 |-----|-------|------|
 | Application Gateway | +$20-30/月 | 内部Container Apps公開用 |
-| Worker Container App | +$10-30/月 | v3の非同期処理に必要 |
+| Worker Container App | +$10-30/月 | 専用Container Appとして分離 |
 | ClickHouse専用化 | +$20-40/月 | サイドカーから独立 |
 | Redis種別変更 | +$25-45/月 | CROSSSLOT対応で非クラスタ必須 |
 | Premium NFS | +$12-20/月 | Container Apps NFSマウント要件 |

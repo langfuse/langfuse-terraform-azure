@@ -388,20 +388,21 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 
 ## Comparison: Container Apps vs AKS
 
-| Feature | Container Apps v3 (Current) | AKS (Previous) |
-|---------|-------------------------|----------------|
+Both versions run **Langfuse v3** (Web + Worker architecture).
+
+| Feature | Container Apps (Current) | AKS |
+|---------|-------------------------|-----|
 | **Deployment Time** | 10-18 min | 20-30 min |
-| **Cost (Dev)** | $139-265/mo* | $53-117/mo |
-| **Cost (Prod)** | $433-935/mo | $275-704/mo |
+| **Cost (Dev)** | $139-265/mo* | $100-145/mo |
+| **Cost (Prod)** | $433-935/mo | $430-960/mo |
 | **Complexity** | Low | High |
 | **Kubernetes Knowledge** | Not required | Required |
 | **Auto-scaling** | Built-in | Manual setup |
 | **Monitoring** | Built-in | Manual setup |
-| **Langfuse v3 Support** | Full (Web + Worker) | Full |
 
-\* Higher cost due to: Application Gateway, dedicated ClickHouse/Worker, Azure Cache for Redis Standard, Premium NFS. Can be reduced to $75-140/mo with Dragonfly (see [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md))
+\* Container Apps版は Application Gateway、Premium NFS、非クラスタRedis が必要なためやや高コスト。Dragonfly使用で $75-140/mo まで削減可能 (see [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md))
 
-**Note**: Container Apps v3 costs more than AKS due to architectural requirements (Application Gateway for internal environment, non-clustered Redis for Bull queues, Premium NFS for Container Apps). The trade-off is simpler operations without Kubernetes expertise.
+**Note**: 本番環境コストはほぼ同等。Container Apps版は運用がシンプル（Kubernetes知識不要）なのがメリット。
 
 ## Support
 
@@ -420,7 +421,7 @@ Contributions are welcome! Please open an issue or PR.
 
 ## Changelog
 
-### v3.0.0 - Langfuse v3 Full Architecture (2025-11-29)
+### v3.0.0 - Langfuse v3 Support (2025-11-29)
 - **Breaking**: Full Langfuse v3 support with Web + Worker architecture
 - Added dedicated Worker Container App for async event processing
 - Changed ClickHouse from sidecar to dedicated Container App
@@ -428,7 +429,7 @@ Contributions are welcome! Please open an issue or PR.
 - Changed Redis from Azure Managed Redis to Azure Cache for Redis Standard (non-clustered for Bull queues)
 - Changed ClickHouse storage to Premium NFS FileStorage (required for Container Apps)
 - Added `LANGFUSE_USE_AZURE_BLOB=true` for native Azure Blob Storage support
-- Development environment cost: $139-265/mo (higher due to v3 architecture requirements)
+- Development environment cost: $139-265/mo (vs AKS $100-145/mo)
 - See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for cost reduction to $75-140/mo
 
 ### v2.2.0 - ClickHouse Persistent Storage & Admin User (2025-11-16)
