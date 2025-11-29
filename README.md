@@ -9,29 +9,36 @@ This repository contains a Terraform configuration for deploying [Langfuse](http
 ## Features
 
 - ✅ **Serverless**: Azure Container Apps with auto-scaling
-- ✅ **Cost-effective**: 25-50% cheaper than AKS-based deployment (dev: $41-77/mo, can be optimized to $22-36/mo)
+- ✅ **Full architecture**: Web + Worker + ClickHouse
 - ✅ **Fully managed**: PostgreSQL, Redis, Storage, Log Analytics
 - ✅ **Secure**: Private Endpoints for databases and cache
 - ✅ **Simple**: No Kubernetes/Helm knowledge required
 - ✅ **Fast deployment**: 10-18 minutes vs 20-30 minutes for AKS
-- ✅ **Persistent storage**: ClickHouse data persists across restarts with Azure File Share
+- ✅ **Persistent storage**: ClickHouse data persists with Premium NFS FileStorage
 
 ## Architecture
 
 ```
 Internet
     ↓
-Container Apps (Langfuse + ClickHouse sidecar)
+Application Gateway (HTTP/HTTPS)
+    ↓
+Container Apps Environment (Internal)
+    ├── Langfuse Web (API + UI)
+    ├── Langfuse Worker (Event Processing)
+    └── ClickHouse (Analytics DB)
     ↓ Private Endpoints
-PostgreSQL + Redis + Storage (Blob + File Share)
+PostgreSQL + Redis + Storage (Blob + Premium NFS)
 ```
 
 **Components**:
-- **Langfuse**: Main application container
-- **ClickHouse**: Analytics database (sidecar container with persistent Azure File Share)
+- **Application Gateway**: External access to internal Container Apps
+- **Langfuse Web**: Main application (API + UI)
+- **Langfuse Worker**: Async event processor (Redis queue → ClickHouse)
+- **ClickHouse**: Analytics database (dedicated Container App with NFS)
 - **PostgreSQL**: Primary database with Private Endpoint
-- **Redis**: Caching layer with Private Endpoint
-- **Storage**: Blob storage for uploads + File Share for ClickHouse data
+- **Redis**: Queue + caching (Azure Cache for Redis Standard)
+- **Storage**: Blob storage (Azure SDK) + Premium NFS for ClickHouse
 
 ## Quick Start
 
@@ -196,38 +203,47 @@ terraform output -raw langfuse_admin_password
 
 ## Cost Estimates
 
-### Development Environment (Current Configuration)
+### Development Environment
 
 ```hcl
 # terraform.tfvars
 location = "japaneast"
 name     = "langfuse-dev"
 
+# Web Container App
 container_app_cpu          = 0.5
 container_app_memory       = 1
 container_app_min_replicas = 0  # Scale to zero
 container_app_max_replicas = 3
 
+# Worker Container App (always on)
+worker_cpu          = 1.0
+worker_memory       = 2
+worker_min_replicas = 1
+worker_max_replicas = 1
+
 postgres_instance_count = 1  # No HA
 postgres_sku_name      = "B_Standard_B1ms"
 postgres_storage_mb    = 32768
 
-redis_sku_name = "Balanced_B0"
+# Azure Cache for Redis (Standard, non-clustered for Bull queues)
+redis_sku_name = "Standard"
+redis_family   = "C"
+redis_capacity = 1
 
 use_ddos_protection = false
 ```
 
-**Monthly cost**: $41-77
+**Monthly cost**: $139-265
 
-**Optimizations applied**:
-- ✅ NAT Gateway removed
-- ✅ DNS Zone removed (using Container Apps default domain)
-- ✅ Key Vault removed
-- ✅ Storage Private Endpoint removed
-- ✅ Storage using LRS (instead of GRS)
-- ✅ ClickHouse with persistent storage (Azure File Share 50GB)
+**Architecture components**:
+- ✅ Application Gateway (internal Container Apps access)
+- ✅ Container Apps: Web + Worker + ClickHouse
+- ✅ Azure Cache for Redis Standard (non-clustered for Bull queues)
+- ✅ Premium NFS FileStorage for ClickHouse persistence
+- ✅ Private Endpoints for PostgreSQL and Redis
 
-See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for further cost reduction options (down to $22-36/month).
+See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for cost reduction options (down to $75-140/month with Dragonfly).
 
 ### Production Environment
 
@@ -241,16 +257,23 @@ container_app_memory       = 4
 container_app_min_replicas = 2
 container_app_max_replicas = 20
 
+worker_cpu          = 2.0
+worker_memory       = 4
+worker_min_replicas = 2
+worker_max_replicas = 10
+
 postgres_instance_count = 2  # HA enabled
 postgres_sku_name      = "GP_Standard_D4s_v3"
 postgres_storage_mb    = 131072
 
-redis_sku_name = "Balanced_B1"
+redis_sku_name = "Standard"
+redis_family   = "C"
+redis_capacity = 2
 
 use_ddos_protection = false
 ```
 
-**Monthly cost**: $242-504
+**Monthly cost**: $433-935
 
 **Note**: Production deployments may need NAT Gateway (+$30), DNS Zone (+$0.50), and Key Vault (+$0.03) depending on requirements.
 
@@ -367,17 +390,21 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 
 See [ARCHITECTURE_COMPARISON.md](./ARCHITECTURE_COMPARISON.md) for a detailed breakdown.
 
-| Feature | Container Apps (Current) | AKS (Previous) |
-|---------|-------------------------|----------------|
+Both versions run **Langfuse** with Web + Worker + ClickHouse architecture.
+
+| Feature | Container Apps (Current) | AKS |
+|---------|-------------------------|-----|
 | **Deployment Time** | 10-18 min | 20-30 min |
-| **Cost (Dev)** | $39-75/mo* | $53-117/mo |
-| **Cost (Prod)** | $242-504/mo | $275-704/mo |
+| **Cost (Dev)** | $139-265/mo* | $100-145/mo |
+| **Cost (Prod)** | $433-935/mo | $430-960/mo |
 | **Complexity** | Low | High |
 | **Kubernetes Knowledge** | Not required | Required |
 | **Auto-scaling** | Built-in | Manual setup |
 | **Monitoring** | Built-in | Manual setup |
 
-\* Can be further reduced to $20-34/mo with additional optimizations (see [ARCHITECTURE_COMPARISON.md](./ARCHITECTURE_COMPARISON.md))
+\* Container Apps版は Application Gateway、Premium NFS、非クラスタRedis が必要なためやや高コスト。Dragonfly使用で $75-140/mo まで削減可能 (see [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md))
+
+**Note**: 本番環境コストはほぼ同等。Container Apps版は運用がシンプル（Kubernetes知識不要）なのがメリット。
 
 ## Support
 
@@ -395,6 +422,17 @@ MIT License - See LICENSE for details
 Contributions are welcome! Please open an issue or PR.
 
 ## Changelog
+
+### v3.0.0 - Full Langfuse Architecture (2025-11-29)
+- **Breaking**: Full Langfuse support with Web + Worker + ClickHouse architecture
+- Added dedicated Worker Container App for async event processing
+- Changed ClickHouse from sidecar to dedicated Container App
+- Added Application Gateway for internal Container Apps access
+- Changed Redis from Azure Managed Redis to Azure Cache for Redis Standard (non-clustered for Bull queues)
+- Changed ClickHouse storage to Premium NFS FileStorage (required for Container Apps)
+- Added `LANGFUSE_USE_AZURE_BLOB=true` for native Azure Blob Storage support
+- Development environment cost: $139-265/mo (vs AKS $100-145/mo)
+- See [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md) for cost reduction to $75-140/mo
 
 ### v2.2.0 - ClickHouse Persistent Storage & Admin User (2025-11-16)
 - Added persistent storage for ClickHouse data using Azure File Share (50GB)
