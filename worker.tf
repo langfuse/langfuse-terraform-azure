@@ -7,7 +7,7 @@ resource "azurerm_container_app" "langfuse_worker" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "v3-redis-tls"
+    revision_suffix = "v3-azure-blob"
 
     container {
       name   = "langfuse-worker"
@@ -158,9 +158,10 @@ resource "azurerm_container_app" "langfuse_worker" {
         value = "true"
       }
 
+      # Enable Azure Blob Storage native integration
       env {
-        name  = "LANGFUSE_S3_STORAGE_PROVIDER"
-        value = "azure"
+        name  = "LANGFUSE_USE_AZURE_BLOB"
+        value = "true"
       }
 
       # ClickHouse connection
