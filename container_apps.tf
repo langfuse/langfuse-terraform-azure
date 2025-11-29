@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "v3-s3-full"
+    revision_suffix = "v3-redis-tls"
 
     container {
       name   = "langfuse"
@@ -108,6 +108,17 @@ resource "azurerm_container_app" "langfuse" {
       env {
         name  = "REDIS_TLS_ENABLED"
         value = "true"
+      }
+
+      # Bypass TLS certificate validation for Private Endpoint (IP not in cert SANs)
+      env {
+        name  = "REDIS_TLS_REJECT_UNAUTHORIZED"
+        value = "false"
+      }
+
+      env {
+        name  = "REDIS_TLS_CHECK_SERVER_IDENTITY"
+        value = "false"
       }
 
       env {
