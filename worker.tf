@@ -7,7 +7,7 @@ resource "azurerm_container_app" "langfuse_worker" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "v3-ch-single"
+    revision_suffix = "v3-s3-full"
 
     container {
       name   = "langfuse-worker"
@@ -70,12 +70,43 @@ resource "azurerm_container_app" "langfuse_worker" {
         value = azurerm_storage_container.this.name
       }
 
-      # Worker requires this specific env var for S3 bucket
+      # Required for S3 event uploads (Langfuse v3 requires LANGFUSE_S3_EVENT_UPLOAD_* variables)
       env {
         name  = "LANGFUSE_S3_EVENT_UPLOAD_BUCKET"
         value = azurerm_storage_container.this.name
       }
 
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_REGION"
+        value = azurerm_storage_account.this.location
+      }
+
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID"
+        value = azurerm_storage_account.this.name
+      }
+
+      env {
+        name        = "LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY"
+        secret_name = "storage-access-key"
+      }
+
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT"
+        value = "https://${azurerm_storage_account.this.name}.blob.core.windows.net"
+      }
+
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE"
+        value = "true"
+      }
+
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_PREFIX"
+        value = "events/"
+      }
+
+      # Legacy S3_* variables (kept for compatibility)
       env {
         name  = "S3_REGION"
         value = azurerm_storage_account.this.location
@@ -89,11 +120,6 @@ resource "azurerm_container_app" "langfuse_worker" {
       env {
         name        = "S3_SECRET_ACCESS_KEY"
         secret_name = "storage-access-key"
-      }
-
-      env {
-        name  = "LANGFUSE_S3_EVENT_UPLOAD_PREFIX"
-        value = "events/"
       }
 
       env {
