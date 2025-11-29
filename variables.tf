@@ -43,25 +43,25 @@ variable "db_subnet_address_prefix" {
 variable "use_encryption_key" {
   description = "Whether or not to use an Encryption key for LLM API credential and integration credential store"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "container_app_cpu" {
   description = "CPU cores for Container App"
   type        = number
-  default     = 1.0
+  default     = 0.5
 }
 
 variable "container_app_memory" {
   description = "Memory in Gi for Container App"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "container_app_min_replicas" {
   description = "Minimum number of replicas for Container App"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "container_app_max_replicas" {
@@ -74,19 +74,19 @@ variable "container_app_max_replicas" {
 variable "worker_cpu" {
   description = "CPU cores for Worker Container App"
   type        = number
-  default     = 1.0
+  default     = 0.5
 }
 
 variable "worker_memory" {
   description = "Memory in Gi for Worker Container App"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "worker_min_replicas" {
   description = "Minimum number of replicas for Worker Container App"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "worker_max_replicas" {
@@ -104,19 +104,19 @@ variable "langfuse_image_tag" {
 variable "postgres_instance_count" {
   description = "Number of PostgreSQL instances to create"
   type        = number
-  default     = 2 # Default to 2 instances for high availability
+  default     = 1 # Default to 1 instance for lowest cost (dev)
 }
 
 variable "postgres_ha_mode" {
   description = "HA Mode to use for Postgres. Ensure this is supported in your region https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/overview#azure-regions"
   type        = string
-  default     = "SameZone"
+  default     = null
 }
 
 variable "postgres_sku_name" {
   description = "SKU name for Azure Database for PostgreSQL"
   type        = string
-  default     = "GP_Standard_D2s_v3"
+  default     = "B_Standard_B1ms"
 }
 
 variable "postgres_storage_mb" {
@@ -128,7 +128,7 @@ variable "postgres_storage_mb" {
 variable "redis_sku_name" {
   description = "SKU name for Azure Cache for Redis. Valid values: Basic, Standard, Premium."
   type        = string
-  default     = "Standard"
+  default     = "Basic"
 }
 
 variable "redis_family" {
@@ -140,13 +140,13 @@ variable "redis_family" {
 variable "redis_capacity" {
   description = "Redis capacity. 0-6 for C family, 1-4 for P family."
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "use_ddos_protection" {
   description = "Wheter or not to use a DDoS protection plan"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "additional_env" {

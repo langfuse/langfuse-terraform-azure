@@ -360,10 +360,11 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 ## Documentation
 
 - [Setup Guide](./SETUP_GUIDE.md) - Step-by-step from Azure account creation
-- [Cost Optimization Guide](./COST_OPTIMIZATION.md) - Ways to reduce costs
-- [Migration Guide](./MIGRATION_TO_CONTAINER_APPS.md) - AKS to Container Apps migration
+- [Architecture & Cost Comparison](./ARCHITECTURE_COMPARISON.md) - Detailed comparison with Upstream (AKS)
 
 ## Comparison: Container Apps vs AKS
+
+See [ARCHITECTURE_COMPARISON.md](./ARCHITECTURE_COMPARISON.md) for a detailed breakdown.
 
 | Feature | Container Apps (Current) | AKS (Previous) |
 |---------|-------------------------|----------------|
@@ -375,7 +376,7 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 | **Auto-scaling** | Built-in | Manual setup |
 | **Monitoring** | Built-in | Manual setup |
 
-\* Can be further reduced to $20-34/mo with additional optimizations (see [COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md))
+\* Can be further reduced to $20-34/mo with additional optimizations (see [ARCHITECTURE_COMPARISON.md](./ARCHITECTURE_COMPARISON.md))
 
 ## Support
 
@@ -400,7 +401,6 @@ Contributions are welcome! Please open an issue or PR.
 - Added automatic initial admin user creation with configurable credentials
 - Added LANGFUSE_INIT_USER_* environment variables for headless setup
 - Development environment cost: $41-77/mo (+$2/mo for File Share)
-- **Working commit**: `d3665e7` (rollback reference - see [ROLLBACK.md](./ROLLBACK.md))
 
 ### v2.1.0 - Development Environment Optimization (2025-11-15)
 - Removed NAT Gateway for cost reduction
