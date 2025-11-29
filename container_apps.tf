@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "v3-ch-single"
+    revision_suffix = "v3-s3-fix"
 
     container {
       name   = "langfuse"
@@ -139,6 +139,12 @@ resource "azurerm_container_app" "langfuse" {
 
       env {
         name  = "S3_BUCKET_NAME"
+        value = azurerm_storage_container.this.name
+      }
+
+      # Required for S3 event uploads
+      env {
+        name  = "LANGFUSE_S3_EVENT_UPLOAD_BUCKET"
         value = azurerm_storage_container.this.name
       }
 
