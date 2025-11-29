@@ -12,7 +12,8 @@ resource "azurerm_redis_cache" "this" {
   public_network_access_enabled = false
 
   redis_configuration {
-    maxmemory_policy = "volatile-lru"
+    # noeviction is required for Bull queues - prevents job data loss
+    maxmemory_policy = "noeviction"
   }
 
   tags = {
