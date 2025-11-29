@@ -147,6 +147,12 @@ resource "azurerm_container_app" "langfuse_worker" {
         secret_name = "clickhouse-password"
       }
 
+      # Single node ClickHouse - disable cluster mode
+      env {
+        name  = "CLICKHOUSE_CLUSTER_ENABLED"
+        value = "false"
+      }
+
       # Encryption key (optional)
       dynamic "env" {
         for_each = var.use_encryption_key ? [1] : []

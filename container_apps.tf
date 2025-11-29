@@ -212,6 +212,12 @@ resource "azurerm_container_app" "langfuse" {
         secret_name = "clickhouse-password"
       }
 
+      # Single node ClickHouse - disable cluster mode
+      env {
+        name  = "CLICKHOUSE_CLUSTER_ENABLED"
+        value = "false"
+      }
+
       env {
         name  = "LANGFUSE_INIT_USER_EMAIL"
         value = "admin@example.com"
