@@ -9,7 +9,7 @@ This repository contains a Terraform configuration for deploying [Langfuse](http
 ## Features
 
 - ✅ **Serverless**: Azure Container Apps with auto-scaling
-- ✅ **Langfuse v3**: Full support for Web + Worker architecture
+- ✅ **Full architecture**: Web + Worker + ClickHouse
 - ✅ **Fully managed**: PostgreSQL, Redis, Storage, Log Analytics
 - ✅ **Secure**: Private Endpoints for databases and cache
 - ✅ **Simple**: No Kubernetes/Helm knowledge required
@@ -203,7 +203,7 @@ terraform output -raw langfuse_admin_password
 
 ## Cost Estimates
 
-### Development Environment (Langfuse v3)
+### Development Environment
 
 ```hcl
 # terraform.tfvars
@@ -388,7 +388,7 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 
 ## Comparison: Container Apps vs AKS
 
-Both versions run **Langfuse v3** (Web + Worker architecture).
+Both versions run **Langfuse** with Web + Worker + ClickHouse architecture.
 
 | Feature | Container Apps (Current) | AKS |
 |---------|-------------------------|-----|
@@ -421,8 +421,8 @@ Contributions are welcome! Please open an issue or PR.
 
 ## Changelog
 
-### v3.0.0 - Langfuse v3 Support (2025-11-29)
-- **Breaking**: Full Langfuse v3 support with Web + Worker architecture
+### v3.0.0 - Full Langfuse Architecture (2025-11-29)
+- **Breaking**: Full Langfuse support with Web + Worker + ClickHouse architecture
 - Added dedicated Worker Container App for async event processing
 - Changed ClickHouse from sidecar to dedicated Container App
 - Added Application Gateway for internal Container Apps access

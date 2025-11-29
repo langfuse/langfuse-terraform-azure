@@ -1,12 +1,12 @@
 # コスト最適化ガイド
 
-このドキュメントでは、Langfuse v3 on Azure Container Appsのコスト削減方法を説明します。
+このドキュメントでは、Langfuse on Azure Container Appsのコスト削減方法を説明します。
 
 ## アーキテクチャ構成と要件
 
-### Langfuse v3 共通要件（AKS / Container Apps 共通）
+### Langfuse 共通要件（AKS / Container Apps 共通）
 
-Langfuse v3では以下のコンポーネントが必要です：
+Langfuseでは以下のコンポーネントが必要です：
 
 | コンポーネント | 役割 | 要件 |
 |--------------|------|------|
@@ -19,7 +19,7 @@ Langfuse v3では以下のコンポーネントが必要です：
 
 #### Redis非クラスタ要件について
 
-Langfuse v3はBullキューを使用しており、Redisクラスタモードでは`CROSSSLOT`エラーが発生します。
+LangfuseはBullキューを使用しており、Redisクラスタモードでは`CROSSSLOT`エラーが発生します。
 これはAzure/AKS/Container Apps共通の制約です：
 
 - ❌ Azure Managed Redis (OSSCluster) → CROSSSLOT エラー
@@ -51,7 +51,7 @@ Langfuse v3はBullキューを使用しており、Redisクラスタモードで
 
 ## 現在の構成とコスト概算
 
-### 開発環境（Langfuse v3 現在の構成）
+### 開発環境（現在の構成）
 
 | リソース | 月額概算 | 備考 |
 |---------|---------|------|
@@ -97,7 +97,7 @@ Langfuse v3はBullキューを使用しており、Redisクラスタモードで
 - Application Gateway（内部環境公開用）
 - Premium NFS FileStorage（Container Apps要件）
 
-**注**: Redisの非クラスタ要件はLangfuse v3共通のためAKS版でも同様のコストがかかります。
+**注**: Redisの非クラスタ要件はLangfuse共通のためAKS版でも同様のコストがかかります。
 
 **Container Apps版のメリット**:
 - Kubernetes知識不要でシンプルな運用
@@ -166,7 +166,7 @@ resource "random_password" "dragonfly_password" {
 
 **コスト**: Container Apps料金のみ（約 $5-10/月）
 
-**注意**: Langfuse v3はBullキューを使用するため、CROSSSLOT対応が必要。Dragonflyは非クラスタモードで動作するため対応可能。
+**注意**: LangfuseはBullキューを使用するため、CROSSSLOT対応が必要。Dragonflyは非クラスタモードで動作するため対応可能。
 
 **代替案B: Valkey on Container Apps (Redis fork)**
 
@@ -299,7 +299,7 @@ resource "azurerm_log_analytics_workspace" "this" {
 
 **月額コスト**: $139-265
 
-**推奨**: Langfuse v3 開発/テスト環境向け標準構成
+**推奨**: 開発/テスト環境向け標準構成
 
 ---
 
@@ -378,7 +378,7 @@ resource "azurerm_log_analytics_workspace" "this" {
 
 ## 実装例: 現在の構成
 
-ファイル `terraform.tfvars` (Langfuse v3 開発環境の現在の設定):
+ファイル `terraform.tfvars` (開発環境の現在の設定):
 
 ```hcl
 # 基本設定
@@ -453,7 +453,7 @@ az consumption usage list \
 
 ## まとめ
 
-### コスト比較（両方ともLangfuse v3）
+### コスト比較
 
 | 環境 | AKS版 | Container Apps版 | 最適化後 |
 |-----|-------|-----------------|---------|
@@ -469,7 +469,7 @@ az consumption usage list \
 | Application Gateway | +$20-30/月 | 内部環境を外部公開するため |
 | Premium NFS | +$12-20/月 | Container AppsでNFSマウントに必須 |
 
-**注**: 以下はLangfuse v3共通要件のためAKS版でも同様：
+**注**: 以下はLangfuse共通要件のためAKS版でも同様：
 - Redis非クラスタ (Azure Cache for Redis Standard)
 - Worker
 - ClickHouse
@@ -506,4 +506,4 @@ az consumption usage list \
 ---
 
 **最終更新**: 2025-11-29
-**対象バージョン**: Langfuse v3 on Container Apps（Web + Worker + ClickHouse）
+**対象バージョン**: Langfuse on Container Apps（Web + Worker + ClickHouse）
