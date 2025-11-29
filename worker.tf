@@ -7,7 +7,7 @@ resource "azurerm_container_app" "langfuse_worker" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "initial"
+    revision_suffix = "v3-ch-single"
 
     container {
       name   = "langfuse-worker"

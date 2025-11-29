@@ -71,7 +71,7 @@ resource "azurerm_container_app" "langfuse" {
   revision_mode                = "Single"
 
   template {
-    revision_suffix = "http-auth"
+    revision_suffix = "v3-ch-single"
 
     container {
       name   = "langfuse"
