@@ -361,6 +361,7 @@ az consumption usage list --start-date 2025-11-01 --end-date 2025-11-30
 
 - [Setup Guide](./SETUP_GUIDE.md) - Step-by-step from Azure account creation
 - [Architecture & Cost Comparison](./ARCHITECTURE_COMPARISON.md) - Detailed comparison with Upstream (AKS)
+- [Cost Optimization Guide](./COST_OPTIMIZATION.md) - Ways to reduce costs
 
 ## Comparison: Container Apps vs AKS
 
