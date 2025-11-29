@@ -2,28 +2,50 @@
 
 このドキュメントでは、Langfuse v3 on Azure Container Appsのコスト削減方法を説明します。
 
-## Container Apps版のアーキテクチャ変更点
+## アーキテクチャ構成と要件
 
-AKS版からContainer Apps版への移行で以下のアーキテクチャ変更があり、コスト構成が変わっています。
-（両方ともLangfuse v3を使用）
+### Langfuse v3 共通要件（AKS / Container Apps 共通）
 
-### AKS版 → Container Apps版の主な変更
+Langfuse v3では以下のコンポーネントが必要です：
 
-| 変更項目 | AKS版 | Container Apps版 | コストへの影響 |
-|---------|-------|---------------------|--------------|
-| **Application Gateway** | AGIC経由で使用 | 内部環境のため新規追加 | +$20-30/月 |
-| **ClickHouse** | サイドカー（Webと同一Pod） | 専用Container App（常時起動） | +$30-60/月 |
-| **Worker** | Pod内で動作 | 専用Container App（常時起動） | +$10-30/月 |
-| **Redis** | Azure Managed Redis (Basic) | Azure Cache for Redis (Standard) | +$25-45/月 |
-| **ClickHouse Storage** | 通常File Share | Premium NFS FileStorage | +$12-20/月 |
+| コンポーネント | 役割 | 要件 |
+|--------------|------|------|
+| **Web** | API + UI | Langfuseのメインアプリケーション |
+| **Worker** | 非同期処理 | Redis Bullキューからイベントを取得し、ClickHouseに書き込み |
+| **ClickHouse** | 分析DB | トレースデータの保存・クエリ |
+| **PostgreSQL** | メタデータDB | ユーザー、プロジェクト、設定等 |
+| **Redis** | キュー + キャッシュ | **非クラスタモード必須**（Bull キューのCROSSLOT制約） |
+| **Blob Storage** | ファイル保存 | イベントデータ、メディアファイル等 |
 
-### 変更理由
+#### Redis非クラスタ要件について
 
-1. **Application Gateway**: Container Apps内部環境は直接外部公開できないため、Application Gatewayが必要
-2. **ClickHouse専用化**: Webのスケーリングに依存しない独立したデータベース運用のため
-3. **Worker追加**: Langfuse v3の非同期イベント処理アーキテクチャに必要
-4. **Redis種別変更**: Azure Managed Redis OSSClusterモードがBullキューのCROSSLOTエラーを起こすため、非クラスタのAzure Cache for Redisに変更
-5. **Premium NFS**: Container AppsでのNFSマウントにはPremium FileStorageが必要
+Langfuse v3はBullキューを使用しており、Redisクラスタモードでは`CROSSSLOT`エラーが発生します。
+これはAzure/AKS/Container Apps共通の制約です：
+
+- ❌ Azure Managed Redis (OSSCluster) → CROSSSLOT エラー
+- ✅ Azure Cache for Redis Standard (非クラスタ) → 動作OK
+- ✅ Dragonfly / Valkey (非クラスタ) → 動作OK
+
+---
+
+### Container Apps版 固有の要件
+
+| 要件 | 理由 |
+|-----|------|
+| **Application Gateway** | 内部Container Apps環境は直接外部公開不可。Application Gateway経由で公開が必要 |
+| **Premium NFS FileStorage** | Container AppsでNFSマウントするにはPremium FileStorageが必須 |
+| **専用Container App (ClickHouse)** | サイドカーパターンが使えないため、専用Container Appとして分離 |
+
+### AKS版との構成比較
+
+| 項目 | AKS版 | Container Apps版 |
+|-----|-------|-----------------|
+| **外部公開** | AGIC + Application Gateway | Application Gateway (別途必要) |
+| **ClickHouse配置** | サイドカー or 専用Pod | 専用Container App |
+| **Worker配置** | 同一Pod or 専用Pod | 専用Container App |
+| **Redis** | 非クラスタ必須（共通） | 非クラスタ必須（共通） |
+| **ClickHouse Storage** | 通常File Share | Premium NFS FileStorage |
+| **運用複雑度** | 高（Kubernetes知識必要） | 低（マネージド） |
 
 ---
 
@@ -71,12 +93,13 @@ AKS版からContainer Apps版への移行で以下のアーキテクチャ変更
 | 開発 | $100-145 | $139-265 | +$39-120 |
 | 本番 | $430-960 | $433-935 | ほぼ同等 |
 
-**注意**: 両方ともLangfuse v3を使用。Container Apps版は運用がシンプルですが、以下の理由でやや高コスト：
+**Container Apps版がやや高い理由（Container Apps固有）**:
 - Application Gateway（内部環境公開用）
-- Azure Cache for Redis Standard（非クラスタ必須）
-- Premium NFS（Container Apps要件）
+- Premium NFS FileStorage（Container Apps要件）
 
-**メリット**:
+**注**: Redisの非クラスタ要件はLangfuse v3共通のためAKS版でも同様のコストがかかります。
+
+**Container Apps版のメリット**:
 - Kubernetes知識不要でシンプルな運用
 - デプロイ時間短縮（10-18分 vs 20-30分）
 - Helmチャート管理不要
@@ -439,13 +462,17 @@ az consumption usage list \
 
 ### Container Apps版でのコスト増加要因（AKS版比）
 
+**Container Apps固有のコスト増:**
+
 | 要因 | 増加額 | 理由 |
 |-----|-------|------|
-| Application Gateway | +$20-30/月 | 内部Container Apps公開用 |
-| Worker Container App | +$10-30/月 | 専用Container Appとして分離 |
-| ClickHouse専用化 | +$20-40/月 | サイドカーから独立 |
-| Redis種別変更 | +$25-45/月 | CROSSSLOT対応で非クラスタ必須 |
-| Premium NFS | +$12-20/月 | Container Apps NFSマウント要件 |
+| Application Gateway | +$20-30/月 | 内部環境を外部公開するため |
+| Premium NFS | +$12-20/月 | Container AppsでNFSマウントに必須 |
+
+**注**: 以下はLangfuse v3共通要件のためAKS版でも同様：
+- Redis非クラスタ (Azure Cache for Redis Standard)
+- Worker
+- ClickHouse
 
 ### コスト削減の選択肢
 
