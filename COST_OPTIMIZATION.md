@@ -49,58 +49,63 @@ LangfuseはBullキューを使用しており、Redisクラスタモードでは
 
 ---
 
-## 現在の構成とコスト概算
+## コスト比較（AKS版 vs Container Apps版）
 
-### 開発環境（現在の構成）
+### 開発環境
 
-| リソース | 月額概算 | 備考 |
-|---------|---------|------|
-| **Application Gateway** | $20-30 | Standard_v2, capacity 1（内部Container Apps公開用） |
-| **Container Apps (Web)** | $5-20 | CPU 0.5-1.0, Memory 1-2Gi, min 0-1 replica |
-| **Container Apps (Worker)** | $10-30 | CPU 1.0, Memory 2Gi, 常時1台起動 |
-| **Container Apps (ClickHouse)** | $30-60 | CPU 2.0, Memory 4Gi, 常時1台起動 |
-| **PostgreSQL Flexible Server** | $10-30 | B_Standard_B1ms, HAなし |
-| **Azure Cache for Redis** | $40-60 | Standard C1（非クラスタ、Bullキュー対応） |
-| **Storage Account (Blob)** | $2-3 | Blob Storage LRS、Azure Blob SDK使用 |
-| **Storage Account (Premium NFS)** | $15-25 | Premium FileStorage 100GB（ClickHouse用） |
-| **Log Analytics** | $5 | 30日保持 |
-| **Private Endpoints (2個)** | $2 | PostgreSQL, Redis用 |
-| **合計** | **$139-265** | |
+| リソース | AKS版 | Container Apps版 | 差額 | 備考 |
+|---------|-------|-----------------|------|------|
+| **コンピュート基盤** | $30-40 (AKS 1node B2s) | - | - | Container Appsは個別課金 |
+| **Application Gateway** | $20-30 (AGIC共用) | $20-30 | ±0 | 両方必要 |
+| **Web** | (AKS内) | $5-20 | - | CPU 0.5-1.0 |
+| **Worker** | (AKS内) | $10-30 | - | CPU 1.0, 常時起動 |
+| **ClickHouse** | (AKS内) | $30-60 | - | CPU 2.0, 常時起動 |
+| **PostgreSQL** | $10-30 | $10-30 | ±0 | B_Standard_B1ms |
+| **Redis** | $40-60 | $40-60 | ±0 | Standard C1（非クラスタ必須） |
+| **Storage (Blob)** | $2-3 | $2-3 | ±0 | LRS |
+| **Storage (ClickHouse)** | $2-5 (通常File Share) | $15-25 (Premium NFS) | **+$10-20** | Container Apps要件 |
+| **Log Analytics** | $5 | $5 | ±0 | 30日保持 |
+| **Private Endpoints** | $2 | $2 | ±0 | PostgreSQL, Redis |
+| **合計** | **$100-145** | **$139-265** | **+$39-120** | |
 
-### 本番環境（推奨構成）
+### 本番環境
 
-| リソース | 月額概算 | 備考 |
-|---------|---------|------|
-| **Application Gateway** | $40-80 | Standard_v2, capacity 2-4（冗長化） |
-| **Container Apps (Web)** | $50-100 | CPU 2.0, Memory 4Gi, min 2 replicas |
-| **Container Apps (Worker)** | $20-50 | CPU 2.0, Memory 4Gi, min 2 replicas |
-| **Container Apps (ClickHouse)** | $60-120 | CPU 4.0, Memory 8Gi, 1台（スケール不可） |
-| **PostgreSQL Flexible Server (HA)** | $100-300 | GP_Standard_D4s_v3 + HA |
-| **Azure Cache for Redis** | $80-150 | Standard C2-C3 または Premium |
-| **Storage Account (Blob)** | $20 | Blob Storage GRS |
-| **Storage Account (Premium NFS)** | $30-50 | Premium FileStorage 200GB以上 |
-| **Log Analytics** | $20-50 | 大量ログ |
-| **NAT Gateway（オプション）** | $30 | 固定IPが必要な場合 |
-| **Private Endpoints (2-4個)** | $2-4 | セキュリティ要件次第 |
-| **DNS Zone（オプション）** | $0.50 | カスタムドメイン使用時 |
-| **Key Vault（オプション）** | $0.03 | SSL証明書管理 |
-| **合計** | **$433-935** | オプション含む |
+| リソース | AKS版 | Container Apps版 | 差額 | 備考 |
+|---------|-------|-----------------|------|------|
+| **コンピュート基盤** | $200-400 (AKS 2-3node D4s) | - | - | Container Appsは個別課金 |
+| **Application Gateway** | $40-80 | $40-80 | ±0 | 両方必要 |
+| **Web** | (AKS内) | $50-100 | - | CPU 2.0, min 2 |
+| **Worker** | (AKS内) | $20-50 | - | CPU 2.0, min 2 |
+| **ClickHouse** | (AKS内) | $60-120 | - | CPU 4.0 |
+| **PostgreSQL (HA)** | $100-300 | $100-300 | ±0 | GP_Standard_D4s_v3 |
+| **Redis** | $80-150 | $80-150 | ±0 | Standard C2-C3 |
+| **Storage (Blob)** | $20 | $20 | ±0 | GRS |
+| **Storage (ClickHouse)** | $5-10 (通常File Share) | $30-50 (Premium NFS) | **+$20-40** | Container Apps要件 |
+| **Log Analytics** | $20-50 | $20-50 | ±0 | 大量ログ |
+| **Private Endpoints** | $2-4 | $2-4 | ±0 | |
+| **合計** | **$430-960** | **$433-935** | **ほぼ同等** | |
 
-### AKS版との比較
+### 差額の要因
 
-| 環境 | AKS版 | Container Apps版 | 差額 |
-|-----|-------|-----------------|------|
-| 開発 | $100-145 | $139-265 | +$39-120 |
-| 本番 | $430-960 | $433-935 | ほぼ同等 |
+| 要因 | 差額 | 説明 |
+|-----|------|------|
+| **Premium NFS** | +$10-40/月 | Container AppsでNFSマウントに必須 |
+| **コンピュート効率** | ±0〜+$30 | AKSはノード共有で効率的、Container Appsは個別課金 |
 
-**Container Apps版がやや高い理由（Container Apps固有）**:
-- Application Gateway（内部環境公開用）
-- Premium NFS FileStorage（Container Apps要件）
+**共通コスト（差額なし）**:
+- Application Gateway（両方必要）
+- Redis Standard（非クラスタ必須はLangfuse要件）
+- PostgreSQL、Storage (Blob)、Log Analytics
 
-**注**: Redisの非クラスタ要件はLangfuse共通のためAKS版でも同様のコストがかかります。
+### まとめ
 
-**Container Apps版のメリット**:
-- Kubernetes知識不要でシンプルな運用
+| 環境 | AKS版 | Container Apps版 | 主な差額要因 |
+|-----|-------|-----------------|------------|
+| 開発 | $100-145 | $139-265 | Premium NFS (+$10-20)、コンピュート効率差 |
+| 本番 | $430-960 | $433-935 | Premium NFS (+$20-40)、ほぼ相殺 |
+
+**Container Apps版のメリット**（コスト以外）:
+- Kubernetes知識不要
 - デプロイ時間短縮（10-18分 vs 20-30分）
 - Helmチャート管理不要
 - 自動スケーリング設定が簡単
@@ -452,27 +457,6 @@ az consumption usage list \
 ---
 
 ## まとめ
-
-### コスト比較
-
-| 環境 | AKS版 | Container Apps版 | 最適化後 |
-|-----|-------|-----------------|---------|
-| 開発 | $100-145 | **$139-265** | $75-140 |
-| 本番 | $430-960 | **$433-935** | - |
-
-### Container Apps版でのコスト増加要因（AKS版比）
-
-**Container Apps固有のコスト増:**
-
-| 要因 | 増加額 | 理由 |
-|-----|-------|------|
-| Application Gateway | +$20-30/月 | 内部環境を外部公開するため |
-| Premium NFS | +$12-20/月 | Container AppsでNFSマウントに必須 |
-
-**注**: 以下はLangfuse共通要件のためAKS版でも同様：
-- Redis非クラスタ (Azure Cache for Redis Standard)
-- Worker
-- ClickHouse
 
 ### コスト削減の選択肢
 
