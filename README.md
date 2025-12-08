@@ -57,7 +57,7 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "1.5.9"
+  langfuse_helm_chart_version = "1.5.14"
   
   # Optional: Add additional environment variables
   additional_env = [
@@ -225,7 +225,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "1.5.9"              |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "1.5.14"              |    no    |
 | additional_env                    | Additional environment variables for Langfuse | list   | []                   |    no    |
 
 ## Outputs
