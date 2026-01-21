@@ -54,10 +54,9 @@ module "langfuse" {
   postgres_sku_name       = "GP_Standard_D2s_v3"
   postgres_storage_mb     = 32768
 
-  # Optional: Configure the cache
-  redis_sku_name = "Basic"
-  redis_family   = "C"
-  redis_capacity = 1
+  # Optional: Configure Azure Managed Redis
+  redis_sku_name          = "Balanced_B0" # Options: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc.
+  redis_high_availability = false         # Enable for production
 
   # Optional: Configure Application Gateway
   app_gateway_capacity = 1
