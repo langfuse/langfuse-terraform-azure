@@ -5,7 +5,33 @@ resource "azurerm_subnet" "redis" {
   address_prefixes     = [var.redis_subnet_address_prefix]
 }
 
-# Add Private Endpoint for Redis
+# Azure Managed Redis instance
+resource "azurerm_managed_redis" "this" {
+  name                = module.naming.redis_cache.name_unique
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  sku_name            = var.redis_sku_name
+
+  # Disable public access since we use private endpoints
+  public_network_access = "Disabled"
+
+  # Disable HA for cost savings in dev/test, enable in production
+  high_availability_enabled = var.redis_high_availability
+
+  default_database {
+    # Access keys required for Langfuse connection
+    access_keys_authentication_enabled = true
+    client_protocol                    = "Encrypted"
+    clustering_policy                  = "OSSCluster"
+    eviction_policy                    = "NoEviction"
+  }
+
+  tags = {
+    application = local.tag_name
+  }
+}
+
+# Private Endpoint for Azure Managed Redis
 resource "azurerm_private_endpoint" "redis" {
   name                = "${module.naming.private_endpoint.name}-redis"
   location            = azurerm_resource_group.this.location
@@ -14,14 +40,15 @@ resource "azurerm_private_endpoint" "redis" {
 
   private_service_connection {
     name                           = "${var.name}-redis"
-    private_connection_resource_id = azurerm_redis_cache.this.id
+    private_connection_resource_id = azurerm_managed_redis.this.id
     is_manual_connection           = false
-    subresource_names              = ["redisCache"]
+    subresource_names              = ["redisEnterprise"]
   }
 }
 
+# Private DNS Zone for Azure Managed Redis
 resource "azurerm_private_dns_zone" "redis" {
-  name                = "privatelink.redis.cache.windows.net"
+  name                = "privatelink.redis.azure.net"
   resource_group_name = azurerm_resource_group.this.name
 }
 
@@ -33,30 +60,11 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
   registration_enabled  = false
 }
 
-# Add A record for the Redis cache's private endpoint
+# A record for the Redis private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = azurerm_redis_cache.this.name
+  name                = azurerm_managed_redis.this.name
   zone_name           = azurerm_private_dns_zone.redis.name
   resource_group_name = azurerm_resource_group.this.name
   ttl                 = 300
   records             = [azurerm_private_endpoint.redis.private_service_connection[0].private_ip_address]
-}
-
-resource "azurerm_redis_cache" "this" {
-  name                          = module.naming.redis_cache.name_unique
-  location                      = var.location
-  resource_group_name           = azurerm_resource_group.this.name
-  capacity                      = var.redis_capacity
-  family                        = var.redis_family
-  sku_name                      = var.redis_sku_name
-  minimum_tls_version           = "1.2"
-  public_network_access_enabled = false
-
-  redis_configuration {
-    maxmemory_policy = "noeviction"
-  }
-
-  tags = {
-    application = local.tag_name
-  }
 }
