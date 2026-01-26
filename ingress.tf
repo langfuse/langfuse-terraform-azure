@@ -101,16 +101,11 @@ resource "azurerm_user_assigned_identity" "appgw" {
   location            = azurerm_resource_group.this.location
 }
 
-# Grant the identity access to the Key Vault
-resource "azurerm_key_vault_access_policy" "appgw" {
-  key_vault_id = azurerm_key_vault.this.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_user_assigned_identity.appgw.principal_id
-
-  secret_permissions = [
-    "Get",
-    "List"
-  ]
+# Grant the Application Gateway identity "Key Vault Secrets User" role to read certificates
+resource "azurerm_role_assignment" "keyvault_secrets_user" {
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.appgw.principal_id
 }
 
 # Enable Azure Application Gateway Ingress Controller
