@@ -44,10 +44,9 @@ module "langfuse" {
   postgres_sku_name      = "GP_Standard_D2s_v3"
   postgres_storage_mb    = 32768
   
-  # Optional: Configure the cache
-  redis_sku_name = "Basic"
-  redis_family   = "C"
-  redis_capacity = 1
+  # Optional: Configure Azure Managed Redis
+  redis_sku_name          = "Balanced_B0"  # Options: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc.
+  redis_high_availability = false          # Enable for production
 
   # Optional: Configure Application Gateway
   app_gateway_capacity = 1
@@ -145,7 +144,7 @@ The module creates a complete Langfuse stack with the following Azure components
   - High availability configuration
   - Private endpoint
   - Network security rules
-- Azure Cache for Redis with:
+- Azure Managed Redis with:
   - Private endpoint
   - Network security rules
 - Azure Storage Account with:
@@ -186,7 +185,7 @@ The module creates a complete Langfuse stack with the following Azure components
 |-----------------------------------------|----------|
 | azurerm_kubernetes_cluster.this         | resource |
 | azurerm_postgresql_flexible_server.this | resource |
-| azurerm_redis_cache.this                | resource |
+| azurerm_managed_redis.this              | resource |
 | azurerm_storage_account.this            | resource |
 | azurerm_key_vault_certificate.this      | resource |
 | azurerm_dns_zone.this                   | resource |
@@ -220,9 +219,8 @@ The module creates a complete Langfuse stack with the following Azure components
 | postgres_ha_mode                  | HA mode for PostgreSQL                        | string | "SameZone"           |    no    |
 | postgres_sku_name                 | SKU name for PostgreSQL                       | string | "GP_Standard_D2s_v3" |    no    |
 | postgres_storage_mb               | Storage size in MB for PostgreSQL             | number | 32768                |    no    |
-| redis_sku_name                    | SKU name for Redis                            | string | "Basic"              |    no    |
-| redis_family                      | Cache family for Redis                        | string | "C"                  |    no    |
-| redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
+| redis_sku_name                    | SKU name for Azure Managed Redis              | string | "Balanced_B0"        |    no    |
+| redis_high_availability           | Enable high availability for Redis            | bool   | false                |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
 | langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "1.5.14"              |    no    |

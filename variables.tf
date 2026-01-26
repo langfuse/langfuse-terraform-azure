@@ -118,21 +118,20 @@ variable "postgres_storage_mb" {
 }
 
 variable "redis_sku_name" {
-  description = "SKU name for Azure Cache for Redis"
+  description = "SKU name for Azure Managed Redis. See https://learn.microsoft.com/en-us/azure/redis/overview#choosing-the-right-tier for options. Common values: Balanced_B0 (dev/test), Balanced_B1, Balanced_B3, Balanced_B5 (production)."
   type        = string
-  default     = "Basic"
+  default     = "Balanced_B3"
+
+  validation {
+    condition     = can(regex("^(Balanced_B[0-9]+|ComputeOptimized_X[0-9]+|FlashOptimized_A[0-9]+|MemoryOptimized_M[0-9]+)$", var.redis_sku_name))
+    error_message = "redis_sku_name must be a valid Azure Managed Redis SKU (e.g., Balanced_B0, Balanced_B1, ComputeOptimized_X3, MemoryOptimized_M10)."
+  }
 }
 
-variable "redis_family" {
-  description = "Cache family for Azure Cache for Redis"
-  type        = string
-  default     = "C"
-}
-
-variable "redis_capacity" {
-  description = "Capacity of Azure Cache for Redis"
-  type        = number
-  default     = 1
+variable "redis_high_availability" {
+  description = "Enable high availability for Azure Managed Redis. Recommended for production workloads."
+  type        = bool
+  default     = true
 }
 
 variable "app_gateway_capacity" {
