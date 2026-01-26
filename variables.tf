@@ -120,7 +120,7 @@ variable "postgres_storage_mb" {
 variable "redis_sku_name" {
   description = "SKU name for Azure Managed Redis. See https://learn.microsoft.com/en-us/azure/redis/overview#choosing-the-right-tier for options. Common values: Balanced_B0 (dev/test), Balanced_B1, Balanced_B3, Balanced_B5 (production)."
   type        = string
-  default     = "Balanced_B0"
+  default     = "Balanced_B3"
 
   validation {
     condition     = can(regex("^(Balanced_B[0-9]+|ComputeOptimized_X[0-9]+|FlashOptimized_A[0-9]+|MemoryOptimized_M[0-9]+)$", var.redis_sku_name))
@@ -131,7 +131,7 @@ variable "redis_sku_name" {
 variable "redis_high_availability" {
   description = "Enable high availability for Azure Managed Redis. Recommended for production workloads."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "app_gateway_capacity" {
