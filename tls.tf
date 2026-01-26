@@ -15,45 +15,14 @@ resource "azurerm_key_vault" "this" {
   sku_name                   = "standard"
   purge_protection_enabled   = true
   soft_delete_retention_days = 7
+  rbac_authorization_enabled = true
 }
 
-resource "azurerm_key_vault_access_policy" "this" {
-  key_vault_id = azurerm_key_vault.this.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
-
-  certificate_permissions = [
-    "Create",
-    "Delete",
-    "DeleteIssuers",
-    "Get",
-    "GetIssuers",
-    "Import",
-    "List",
-    "ListIssuers",
-    "ManageContacts",
-    "ManageIssuers",
-    "SetIssuers",
-    "Update",
-  ]
-
-  key_permissions = [
-    "Create",
-    "Delete",
-    "Get",
-    "Import",
-    "List",
-    "Update",
-  ]
-
-  secret_permissions = [
-    "Delete",
-    "Get",
-    "List",
-    "Purge",
-    "Recover",
-    "Set",
-  ]
+# Grant the Terraform deployer "Key Vault Certificates Officer" role for certificate management
+resource "azurerm_role_assignment" "keyvault_certificates_officer" {
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Certificates Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
 }
 
 # Add Private Endpoint for Key Vault
@@ -141,8 +110,8 @@ resource "azurerm_key_vault_certificate" "this" {
   }
 
   depends_on = [
-    azurerm_key_vault_access_policy.this, 
-    azurerm_key_vault_access_policy.appgw,
+    azurerm_role_assignment.keyvault_certificates_officer,
+    azurerm_role_assignment.keyvault_secrets_user,
     azurerm_dns_zone.this
-    ]
+  ]
 }
