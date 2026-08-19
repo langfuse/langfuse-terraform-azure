@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.3"
 
   required_providers {
     azurerm = {
@@ -16,7 +16,7 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">= 2.5"
+      version = ">= 2.7" # OCI registry support is required for the ClickHouse operator chart
     }
     random = {
       source  = "hashicorp/random"

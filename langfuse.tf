@@ -1,6 +1,8 @@
 locals {
-  langfuse_values       = <<EOT
+  langfuse_values = <<EOT
 langfuse:
+  image:
+    tag: ${jsonencode(var.app_version)}
   salt:
     secretKeyRef:
       name: langfuse
@@ -20,10 +22,6 @@ postgresql:
     existingSecret: langfuse
     secretKeys:
       userPasswordKey: postgres-password
-clickhouse:
-  auth:
-    existingSecret: langfuse
-    existingSecretKey: clickhouse-password
 redis:
   deploy: false
   host: ${azurerm_redis_cache.this.name}.redis.cache.windows.net
@@ -53,6 +51,56 @@ s3:
   mediaUpload:
     prefix: "media/"
 EOT
+
+  # In-cluster ClickHouse: the Langfuse Helm chart v2 renders ClickHouseCluster
+  # and KeeperCluster resources reconciled by the ClickHouse operator (see
+  # clickhouse.tf).
+  clickhouse_internal_values = !local.deploy_clickhouse ? "" : <<EOT
+clickhouse:
+  deploy: true
+  auth:
+    existingSecret: langfuse
+    existingSecretKey: clickhouse-password
+  cluster:
+    replicas: ${var.clickhouse_replicas}
+    storage:
+      size: ${var.clickhouse_storage_size}
+      className: ${var.clickhouse_storage_class}
+    resources:
+      requests:
+        cpu: ${jsonencode(var.clickhouse_resources.cpu)}
+        memory: ${jsonencode(var.clickhouse_resources.memory)}
+      limits:
+        cpu: ${jsonencode(var.clickhouse_resources.cpu)}
+        memory: ${jsonencode(var.clickhouse_resources.memory)}
+  keeper:
+    replicas: ${var.clickhouse_keeper_replicas}
+    storage:
+      size: ${var.clickhouse_keeper_storage_size}
+      className: ${var.clickhouse_storage_class}
+EOT
+
+  # External ClickHouse: skip the in-cluster deployment and point Langfuse at
+  # the provided instance.
+  clickhouse_external_values = local.deploy_clickhouse ? "" : <<EOT
+clickhouse:
+  deploy: false
+  host: ${jsonencode(var.external_clickhouse.host)}
+  httpPort: ${var.external_clickhouse.http_port}
+  nativePort: ${var.external_clickhouse.native_port}
+  database: ${jsonencode(var.external_clickhouse.database)}
+  cluster:
+    enabled: ${var.external_clickhouse.cluster_enabled}
+  auth:
+    username: ${jsonencode(var.external_clickhouse.username)}
+    existingSecret: langfuse
+    existingSecretKey: clickhouse-password
+  migration:
+    ssl: ${var.external_clickhouse.migration_ssl}
+EOT
+
+  clickhouse_values = local.deploy_clickhouse ? local.clickhouse_internal_values : local.clickhouse_external_values
+
   encryption_values     = var.use_encryption_key == false ? "" : <<EOT
 langfuse:
   encryptionKey:
@@ -119,7 +167,7 @@ resource "kubernetes_secret" "langfuse" {
     "storage-access-key"  = azurerm_storage_account.this.primary_access_key
     "salt"                = random_bytes.salt.base64
     "nextauth-secret"     = random_bytes.nextauth_secret.base64
-    "clickhouse-password" = random_password.clickhouse_password.result
+    "clickhouse-password" = local.deploy_clickhouse ? random_password.clickhouse_password.result : var.external_clickhouse_password
     "encryption-key"      = var.use_encryption_key ? random_bytes.encryption_key[0].hex : ""
   }
 }
@@ -134,8 +182,21 @@ resource "helm_release" "langfuse" {
 
   values = [
     local.langfuse_values,
+    local.clickhouse_values,
     local.ingress_values,
     local.encryption_values,
     local.additional_env_values
   ]
+
+  depends_on = [
+    kubernetes_secret.langfuse,
+    helm_release.clickhouse_operator,
+  ]
+
+  lifecycle {
+    precondition {
+      condition     = var.external_clickhouse == null || var.external_clickhouse_password != ""
+      error_message = "external_clickhouse_password must be set when external_clickhouse is configured."
+    }
+  }
 }
