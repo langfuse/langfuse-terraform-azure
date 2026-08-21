@@ -3,8 +3,11 @@ terraform {
 
   required_providers {
     azurerm = {
-      source  = "hashicorp/azurerm"
-      version = ">= 3.0.0"
+      source = "hashicorp/azurerm"
+      # azurerm 5.x removed arguments this module still uses
+      # (e.g. azurerm_subnet.service_endpoints, private_dns_zone_name on
+      # azurerm_private_dns_zone_virtual_network_link)
+      version = ">= 3.0.0, < 5.0.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
