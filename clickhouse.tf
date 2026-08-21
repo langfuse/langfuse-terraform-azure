@@ -28,8 +28,19 @@ resource "helm_release" "cert_manager" {
   values = [<<EOT
 crds:
   enabled: true
+# cert-manager runs leader election in kube-system by default, which relies on
+# write access to a namespace the cluster operator may restrict. Keep the leases
+# in cert-manager's own namespace instead; without a leader, cainjector never
+# injects the webhook CA and the operator's webhook stays broken.
+global:
+  leaderElection:
+    namespace: cert-manager
 EOT
   ]
+
+  # Node pools can scale out during the first install, which takes longer than
+  # the helm provider's default 300s wait.
+  timeout = 600
 }
 
 # Official ClickHouse Kubernetes operator. The Langfuse Helm chart v2 renders
@@ -45,6 +56,11 @@ resource "helm_release" "clickhouse_operator" {
   version          = var.clickhouse_operator_chart_version
   namespace        = "clickhouse-operator-system"
   create_namespace = true
+
+  # Waiting (helm provider default) matters here: the operator deployment only
+  # becomes ready once cert-manager has issued its webhook certificate, and the
+  # Langfuse chart requires the operator CRDs and webhook to exist.
+  timeout = 600
 
   depends_on = [helm_release.cert_manager]
 }
