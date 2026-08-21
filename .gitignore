@@ -145,3 +145,6 @@ terraform.rc
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,visualstudiocode,terraform
+# Dependency lock files are not used for reusable modules; CI intentionally
+# resolves providers fresh to catch breaking provider releases.
+.terraform.lock.hcl
