@@ -154,7 +154,7 @@ resource "azurerm_application_gateway" "this" {
 
   ssl_certificate {
     name                = var.name
-    key_vault_secret_id = azurerm_key_vault_certificate.this.versionless_secret_id
+    key_vault_secret_id = local.ssl_certificate_secret_id
   }
 
   backend_address_pool {

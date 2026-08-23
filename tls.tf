@@ -94,6 +94,8 @@ resource "azurerm_private_dns_a_record" "key_vault" {
 }
 
 resource "azurerm_key_vault_certificate" "this" {
+  count = var.ssl_certificate_secret_id == null ? 1 : 0
+
   name         = module.naming.key_vault_certificate.name
   key_vault_id = azurerm_key_vault.this.id
 
