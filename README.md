@@ -60,7 +60,11 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "1.5.14"
+  langfuse_helm_chart_version = "2.0.0"
+
+  # Optional: Pin the Langfuse application version. Defaults to the latest
+  # release at the time this module version was published.
+  app_version = "4.14.0"
   
   # Optional: Add additional environment variables
   additional_env = [
@@ -128,6 +132,59 @@ ns4-05.azure-dns.info.
 terraform apply
 ```
 
+## Langfuse version
+
+The module deploys the Langfuse Helm chart v2 (`langfuse_helm_chart_version`), which ships [Langfuse v4](https://langfuse.com/docs/v4). The Langfuse application version is pinned explicitly through the `app_version` variable, which defaults to the latest Langfuse release at the time the module version was published. To upgrade Langfuse, set `app_version` to a newer [release](https://github.com/langfuse/langfuse/releases):
+
+```hcl
+module "langfuse" {
+  # ...
+  app_version = "4.14.0"
+}
+```
+
+## ClickHouse
+
+By default the Langfuse Helm chart v2 deploys a ClickHouse cluster into the AKS cluster through the official [ClickHouse Kubernetes operator](https://github.com/ClickHouse/clickhouse-operator) (`ClickHouseCluster` and `KeeperCluster` resources). To support this, the module installs:
+
+- [cert-manager](https://cert-manager.io/) (required by the operator to issue its admission webhook certificates)
+- The ClickHouse operator (`oci://ghcr.io/clickhouse/clickhouse-operator-helm`)
+
+The deployment can be sized with the `clickhouse_replicas`, `clickhouse_resources`, `clickhouse_storage_size`, `clickhouse_storage_class`, `clickhouse_keeper_replicas`, and `clickhouse_keeper_storage_size` variables.
+
+### External ClickHouse (bring your own)
+
+To use an existing ClickHouse instead — for example [ClickHouse Cloud](https://clickhouse.com/cloud) — set `external_clickhouse`. The module then skips cert-manager, the operator, and the in-cluster ClickHouse entirely. See [examples/external-clickhouse](examples/external-clickhouse/external-clickhouse.tf) for a full example.
+
+```hcl
+module "langfuse" {
+  source = "github.com/langfuse/langfuse-terraform-azure"
+
+  domain = "langfuse.example.com"
+
+  external_clickhouse = {
+    host = "https://abc123.westeurope.azure.clickhouse.cloud"
+    # Defaults: http_port = 8443, native_port = 9440, username = "default",
+    # database = "default", cluster_enabled = true, migration_ssl = true
+
+    # ClickHouse Cloud on Azure runs without ON CLUSTER DDL:
+    cluster_enabled = false
+  }
+  external_clickhouse_password = var.clickhouse_password
+}
+```
+
+Set `cluster_enabled = false` for ClickHouse Cloud on Azure or for single-node deployments. Make sure the AKS cluster can reach the external ClickHouse (for ClickHouse Cloud, check the IP allowlist or use Private Link).
+
+### Migrating from module versions <= 0.4.x
+
+Earlier versions of this module deployed Langfuse v3 with the Bitnami-based Helm chart v1, which ran ClickHouse (and ZooKeeper) as a Bitnami subchart. **Upgrading is a breaking change**: the operator-managed ClickHouse starts empty, and the Helm chart refuses a raw in-place `helm upgrade` that would replace leftover Bitnami volumes. Existing installations must migrate in two steps:
+
+1. Migrate the chart deployment (copying the ClickHouse data) following the [chart v1 → v2 migration guide](https://github.com/langfuse/langfuse-k8s/tree/main/examples/upgrade-v1-to-v2).
+2. Upgrade the application following the [Langfuse v3 → v4 upgrade guide](https://langfuse.com/self-hosting/upgrade/upgrade-guides/upgrade-v3-to-v4).
+
+New installations are unaffected. If you need to stay on the Bitnami-based deployment for now, pin this module to `0.4.x`.
+
 ## Architecture
 
 The module creates a complete Langfuse stack with the following Azure components:
@@ -168,10 +225,10 @@ The module creates a complete Langfuse stack with the following Azure components
 
 | Name       | Version |
 |------------|---------|
-| terraform  | >= 1.0  |
+| terraform  | >= 1.3  |
 | azurerm    | >= 4.0  |
 | kubernetes | >= 2.10 |
-| helm       | >= 2.5  |
+| helm       | >= 2.7  |
 
 ## Providers
 
@@ -179,7 +236,7 @@ The module creates a complete Langfuse stack with the following Azure components
 |------------|---------|
 | azurerm    | >= 4.0  |
 | kubernetes | >= 2.10 |
-| helm       | >= 2.5  |
+| helm       | >= 2.7  |
 | random     | >= 3.0  |
 | tls        | >= 3.0  |
 | time       | >= 0.9  |
@@ -199,6 +256,9 @@ The module creates a complete Langfuse stack with the following Azure components
 | azurerm_application_gateway.this        | resource |
 | azurerm_private_endpoint.this           | resource |
 | azurerm_ddos_protection_plan.this       | resource |
+| helm_release.cert_manager               | resource |
+| helm_release.clickhouse_operator        | resource |
+| helm_release.langfuse                   | resource |
 
 ## Inputs
 
@@ -229,7 +289,18 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_capacity                    | Capacity of Redis                             | number | 1                    |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "1.5.14"              |    no    |
+| clickhouse_replicas               | Number of in-cluster ClickHouse replicas      | number | 3                    |    no    |
+| clickhouse_keeper_replicas        | Number of ClickHouse Keeper replicas (1, 3 or 5) | number | 3                 |    no    |
+| clickhouse_storage_size           | Persistent volume size per ClickHouse replica | string | "100Gi"              |    no    |
+| clickhouse_keeper_storage_size    | Persistent volume size per Keeper replica     | string | "10Gi"               |    no    |
+| clickhouse_storage_class          | StorageClass for ClickHouse and Keeper volumes | string | "managed-csi-premium" |   no    |
+| clickhouse_resources              | Resource requests and limits per ClickHouse replica | object | { cpu = "2", memory = "8Gi" } | no |
+| clickhouse_operator_chart_version | Version of the ClickHouse operator Helm chart | string | "0.0.5"              |    no    |
+| cert_manager_chart_version        | Version of the cert-manager Helm chart        | string | "v1.20.2"            |    no    |
+| external_clickhouse               | Use an external ClickHouse (e.g. ClickHouse Cloud) instead of the in-cluster deployment. See [External ClickHouse](#external-clickhouse-bring-your-own). | object | null | no |
+| external_clickhouse_password      | Password for the external ClickHouse user     | string | ""                   |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "2.0.0"              |    no    |
+| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published. | string | "4.14.0" | no |
 | additional_env                    | Additional environment variables for Langfuse | list   | []                   |    no    |
 
 ## Outputs
