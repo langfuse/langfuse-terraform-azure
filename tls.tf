@@ -25,6 +25,19 @@ resource "azurerm_role_assignment" "keyvault_certificates_officer" {
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
+# Role assignments are eventually consistent: the Key Vault data plane keeps
+# rejecting requests for a while after an assignment is created, so creating the
+# certificate right away fails with a 403. depends_on only orders the calls, it
+# does not wait for the assignment to take effect.
+resource "time_sleep" "key_vault_rbac_propagation" {
+  create_duration = "60s"
+
+  depends_on = [
+    azurerm_role_assignment.keyvault_certificates_officer,
+    azurerm_role_assignment.keyvault_secrets_user,
+  ]
+}
+
 # Add Private Endpoint for Key Vault
 resource "azurerm_private_endpoint" "key_vault" {
   name                = "${module.naming.private_endpoint.name}-keyvault"
@@ -110,8 +123,7 @@ resource "azurerm_key_vault_certificate" "this" {
   }
 
   depends_on = [
-    azurerm_role_assignment.keyvault_certificates_officer,
-    azurerm_role_assignment.keyvault_secrets_user,
+    time_sleep.key_vault_rbac_propagation,
     azurerm_dns_zone.this
   ]
 }

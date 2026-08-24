@@ -11,6 +11,9 @@ This module aims to provide a production-ready, secure, and scalable deployment 
 
 1. Set up the module with the settings that suit your needs. A minimal installation requires a `domain` which is under your control and a `resource_group_name`. Configure the kubernetes and helm providers to connect to the AKS cluster.
 
+> [!IMPORTANT]
+> The Key Vault is secured with Azure RBAC and this module creates the role assignments itself, so the identity running `terraform apply` needs `Microsoft.Authorization/roleAssignments/write` on the target scope — the built-in **Owner** or **User Access Administrator** role. Contributor alone is not sufficient.
+
 ```hcl
 module "langfuse" {
   source = "github.com/langfuse/langfuse-terraform-azure?ref=0.4.5"
@@ -166,7 +169,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | Name       | Version |
 |------------|---------|
 | terraform  | >= 1.0  |
-| azurerm    | >= 3.0  |
+| azurerm    | >= 4.0  |
 | kubernetes | >= 2.10 |
 | helm       | >= 2.5  |
 
@@ -174,11 +177,12 @@ The module creates a complete Langfuse stack with the following Azure components
 
 | Name       | Version |
 |------------|---------|
-| azurerm    | >= 3.0  |
+| azurerm    | >= 4.0  |
 | kubernetes | >= 2.10 |
 | helm       | >= 2.5  |
 | random     | >= 3.0  |
 | tls        | >= 3.0  |
+| time       | >= 0.9  |
 
 ## Resources
 

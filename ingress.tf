@@ -106,6 +106,10 @@ resource "azurerm_role_assignment" "keyvault_secrets_user" {
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.appgw.principal_id
+
+  # The identity is created in this same apply, so skip the directory lookup
+  # that would otherwise fail while Entra ID replicates the new principal.
+  skip_service_principal_aad_check = true
 }
 
 # Enable Azure Application Gateway Ingress Controller
