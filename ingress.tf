@@ -101,16 +101,15 @@ resource "azurerm_user_assigned_identity" "appgw" {
   location            = azurerm_resource_group.this.location
 }
 
-# Grant the identity access to the Key Vault
-resource "azurerm_key_vault_access_policy" "appgw" {
-  key_vault_id = azurerm_key_vault.this.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_user_assigned_identity.appgw.principal_id
+# Grant the Application Gateway identity "Key Vault Secrets User" role to read certificates
+resource "azurerm_role_assignment" "keyvault_secrets_user" {
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.appgw.principal_id
 
-  secret_permissions = [
-    "Get",
-    "List"
-  ]
+  # The identity is created in this same apply, so skip the directory lookup
+  # that would otherwise fail while Entra ID replicates the new principal.
+  skip_service_principal_aad_check = true
 }
 
 # Enable Azure Application Gateway Ingress Controller

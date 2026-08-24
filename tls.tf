@@ -15,44 +15,26 @@ resource "azurerm_key_vault" "this" {
   sku_name                   = "standard"
   purge_protection_enabled   = true
   soft_delete_retention_days = 7
+  rbac_authorization_enabled = true
 }
 
-resource "azurerm_key_vault_access_policy" "this" {
-  key_vault_id = azurerm_key_vault.this.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
+# Grant the Terraform deployer "Key Vault Certificates Officer" role for certificate management
+resource "azurerm_role_assignment" "keyvault_certificates_officer" {
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Certificates Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
 
-  certificate_permissions = [
-    "Create",
-    "Delete",
-    "DeleteIssuers",
-    "Get",
-    "GetIssuers",
-    "Import",
-    "List",
-    "ListIssuers",
-    "ManageContacts",
-    "ManageIssuers",
-    "SetIssuers",
-    "Update",
-  ]
+# Role assignments are eventually consistent: the Key Vault data plane keeps
+# rejecting requests for a while after an assignment is created, so creating the
+# certificate right away fails with a 403. depends_on only orders the calls, it
+# does not wait for the assignment to take effect.
+resource "time_sleep" "key_vault_rbac_propagation" {
+  create_duration = "60s"
 
-  key_permissions = [
-    "Create",
-    "Delete",
-    "Get",
-    "Import",
-    "List",
-    "Update",
-  ]
-
-  secret_permissions = [
-    "Delete",
-    "Get",
-    "List",
-    "Purge",
-    "Recover",
-    "Set",
+  depends_on = [
+    azurerm_role_assignment.keyvault_certificates_officer,
+    azurerm_role_assignment.keyvault_secrets_user,
   ]
 }
 
@@ -141,8 +123,7 @@ resource "azurerm_key_vault_certificate" "this" {
   }
 
   depends_on = [
-    azurerm_key_vault_access_policy.this,
-    azurerm_key_vault_access_policy.appgw,
+    time_sleep.key_vault_rbac_propagation,
     azurerm_dns_zone.this
   ]
 }
