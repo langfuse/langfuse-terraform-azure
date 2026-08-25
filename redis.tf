@@ -26,18 +26,16 @@ resource "azurerm_private_dns_zone" "redis" {
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
-  name                  = "${var.name}-redis"
-  resource_group_name   = azurerm_resource_group.this.name
-  private_dns_zone_name = azurerm_private_dns_zone.redis.name
-  virtual_network_id    = azurerm_virtual_network.this.id
-  registration_enabled  = false
+  name                 = "${var.name}-redis"
+  private_dns_zone_id  = azurerm_private_dns_zone.redis.id
+  virtual_network_id   = azurerm_virtual_network.this.id
+  registration_enabled = false
 }
 
 # Add A record for the Redis cache's private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
   name                = azurerm_redis_cache.this.name
-  zone_name           = azurerm_private_dns_zone.redis.name
-  resource_group_name = azurerm_resource_group.this.name
+  private_dns_zone_id = azurerm_private_dns_zone.redis.id
   ttl                 = 300
   records             = [azurerm_private_endpoint.redis.private_service_connection[0].private_ip_address]
 }

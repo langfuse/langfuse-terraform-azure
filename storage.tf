@@ -3,7 +3,10 @@ resource "azurerm_subnet" "storage" {
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.storage_subnet_address_prefix]
-  service_endpoints    = ["Microsoft.Storage"]
+
+  service_endpoint {
+    service = "Microsoft.Storage"
+  }
 }
 
 # Associate NAT Gateway with storage subnet
@@ -62,18 +65,16 @@ resource "azurerm_private_dns_zone" "storage" {
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "storage" {
-  name                  = "${var.name}-storage"
-  resource_group_name   = azurerm_resource_group.this.name
-  private_dns_zone_name = azurerm_private_dns_zone.storage.name
-  virtual_network_id    = azurerm_virtual_network.this.id
-  registration_enabled  = false
+  name                 = "${var.name}-storage"
+  private_dns_zone_id  = azurerm_private_dns_zone.storage.id
+  virtual_network_id   = azurerm_virtual_network.this.id
+  registration_enabled = false
 }
 
 # Add A record for the storage account's private endpoint
 resource "azurerm_private_dns_a_record" "storage" {
   name                = azurerm_storage_account.this.name
-  zone_name           = azurerm_private_dns_zone.storage.name
-  resource_group_name = azurerm_resource_group.this.name
+  private_dns_zone_id = azurerm_private_dns_zone.storage.id
   ttl                 = 300
   records             = [azurerm_private_endpoint.storage.private_service_connection[0].private_ip_address]
 }
