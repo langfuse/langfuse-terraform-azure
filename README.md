@@ -109,20 +109,20 @@ provider "helm" {
 }
 ```
 
-2. Apply the DNS zone
+2. Apply the DNS zone and the AKS cluster.
 
 ```bash
 terraform init
-terraform apply --target module.langfuse.azurerm_dns_zone.this
+terraform apply --target module.langfuse.azurerm_dns_zone.this --target module.langfuse.azurerm_kubernetes_cluster.this
 ```
 
-3. Set up the Nameserver delegation on your DNS provider, likely using (check on your created DNS zone):
+> [!IMPORTANT]
+> **This two-stage apply is the supported installation flow, not a workaround.** The `kubernetes` and `helm` providers are configured from this module's outputs, so the AKS cluster has to exist before Terraform can plan any Kubernetes or Helm resource. The same applies when you embed this module in a larger configuration: create the cluster in a first targeted apply, or a separate pipeline stage, before applying the full stack.
+
+3. Set up the Nameserver delegation on your DNS provider. The name servers to delegate to are available as an output:
 
 ```bash
-ns1-05.azure-dns.com.
-ns2-05.azure-dns.net.
-ns3-05.azure-dns.org.
-ns4-05.azure-dns.info.
+terraform output dns_name_servers
 ```
 
 4. Apply the full stack:
@@ -303,23 +303,14 @@ The module creates a complete Langfuse stack with the following Azure components
 
 ## Outputs
 
-| Name                       | Description                                         |
-|----------------------------|-----------------------------------------------------|
-| cluster_name               | The name of the AKS cluster                         |
-| cluster_host               | The host of the AKS cluster                         |
-| cluster_client_certificate | The client certificate for the AKS cluster          |
-| cluster_client_key         | The client key for the AKS cluster                  |
-| cluster_ca_certificate     | The CA certificate for the AKS cluster              |
-| postgres_server_name       | The name of the PostgreSQL server                   |
-| postgres_server_fqdn       | The FQDN of the PostgreSQL server                   |
-| postgres_admin_username    | The administrator username of the PostgreSQL server |
-| postgres_admin_password    | The administrator password of the PostgreSQL server |
-| redis_host                 | The hostname of the Redis instance                  |
-| redis_ssl_port             | The SSL port of the Redis instance                  |
-| redis_primary_key          | The primary access key for the Redis instance       |
-| storage_account_name       | The name of the storage account                     |
-| storage_account_key        | The primary access key for the storage account      |
-| dns_name_servers           | The name servers for the DNS zone                   |
+| Name                       | Description                                            |
+|----------------------------|--------------------------------------------------------|
+| cluster_name               | The name of the AKS cluster                            |
+| cluster_host               | The host of the AKS cluster                            |
+| cluster_client_certificate | The client certificate for the AKS cluster             |
+| cluster_client_key         | The client key for the AKS cluster                     |
+| cluster_ca_certificate     | The CA certificate for the AKS cluster                 |
+| dns_name_servers           | Name servers of the DNS zone, for the delegation step  |
 
 ## Support
 
