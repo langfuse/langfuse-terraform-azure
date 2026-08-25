@@ -3,12 +3,8 @@ terraform {
 
   required_providers {
     azurerm = {
-      source = "hashicorp/azurerm"
-      # 4.0 is the floor because rbac_authorization_enabled replaced
-      # enable_rbac_authorization there. azurerm 5.x removed arguments this module still uses
-      # (e.g. azurerm_subnet.service_endpoints, private_dns_zone_name on
-      # azurerm_private_dns_zone_virtual_network_link)
-      version = ">= 4.0.0, < 5.0.0"
+      source  = "hashicorp/azurerm"
+      version = "~> 5.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"

@@ -226,7 +226,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | Name       | Version |
 |------------|---------|
 | terraform  | >= 1.3  |
-| azurerm    | >= 4.0  |
+| azurerm    | >= 5.0  |
 | kubernetes | >= 2.10 |
 | helm       | >= 2.7  |
 
@@ -234,7 +234,7 @@ The module creates a complete Langfuse stack with the following Azure components
 
 | Name       | Version |
 |------------|---------|
-| azurerm    | >= 4.0  |
+| azurerm    | >= 5.0  |
 | kubernetes | >= 2.10 |
 | helm       | >= 2.7  |
 | random     | >= 3.0  |

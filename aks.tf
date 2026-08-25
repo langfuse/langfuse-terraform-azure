@@ -30,6 +30,13 @@ resource "azurerm_kubernetes_cluster" "this" {
   dns_prefix          = var.name
   kubernetes_version  = var.kubernetes_version
 
+  # azurerm 5 requires this block. Manual keeps the cluster on the manually
+  # managed default_node_pool below, which is Azure's default and what this
+  # module has always used; Auto would hand node sizing to node auto-provisioning.
+  node_provisioning_profile {
+    mode = "Manual"
+  }
+
   default_node_pool {
     name                        = "default"
     vm_size                     = var.node_pool_vm_size
