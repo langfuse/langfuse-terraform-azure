@@ -158,7 +158,7 @@ resource "random_bytes" "encryption_key" {
 resource "kubernetes_secret" "langfuse" {
   metadata {
     name      = "langfuse"
-    namespace = "langfuse"
+    namespace = kubernetes_namespace.langfuse.metadata[0].name
   }
 
   data = {
@@ -173,12 +173,11 @@ resource "kubernetes_secret" "langfuse" {
 }
 
 resource "helm_release" "langfuse" {
-  name             = "langfuse"
-  repository       = "https://langfuse.github.io/langfuse-k8s"
-  version          = var.langfuse_helm_chart_version
-  chart            = "langfuse"
-  namespace        = "langfuse"
-  create_namespace = true
+  name       = "langfuse"
+  repository = "https://langfuse.github.io/langfuse-k8s"
+  version    = var.langfuse_helm_chart_version
+  chart      = "langfuse"
+  namespace  = kubernetes_namespace.langfuse.metadata[0].name
 
   values = [
     local.langfuse_values,
