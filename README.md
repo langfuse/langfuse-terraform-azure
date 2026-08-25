@@ -48,8 +48,8 @@ module "langfuse" {
   postgres_storage_mb    = 32768
   
   # Optional: Configure Azure Managed Redis
-  redis_sku_name          = "Balanced_B0"  # Options: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc.
-  redis_high_availability = false          # Enable for production
+  redis_sku_name          = "Balanced_B3"  # Options: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, etc.
+  redis_high_availability = true           # Disable to save cost in dev/test
 
   # Optional: Configure Application Gateway
   app_gateway_capacity = 1
@@ -283,8 +283,8 @@ The module creates a complete Langfuse stack with the following Azure components
 | postgres_ha_mode                  | HA mode for PostgreSQL                        | string | "SameZone"           |    no    |
 | postgres_sku_name                 | SKU name for PostgreSQL                       | string | "GP_Standard_D2s_v3" |    no    |
 | postgres_storage_mb               | Storage size in MB for PostgreSQL             | number | 32768                |    no    |
-| redis_sku_name                    | SKU name for Azure Managed Redis              | string | "Balanced_B0"        |    no    |
-| redis_high_availability           | Enable high availability for Redis            | bool   | false                |    no    |
+| redis_sku_name                    | SKU name for Azure Managed Redis              | string | "Balanced_B3"        |    no    |
+| redis_high_availability           | Enable high availability for Redis            | bool   | true                |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
 | clickhouse_replicas               | Number of in-cluster ClickHouse replicas      | number | 3                    |    no    |

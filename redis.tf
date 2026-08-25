@@ -22,8 +22,14 @@ resource "azurerm_managed_redis" "this" {
     # Access keys required for Langfuse connection
     access_keys_authentication_enabled = true
     client_protocol                    = "Encrypted"
-    clustering_policy                  = "OSSCluster"
-    eviction_policy                    = "NoEviction"
+    # Langfuse connects as an ordinary (non-cluster) client through the chart's
+    # REDIS_CONNECTION_STRING, so it needs a single logical endpoint.
+    # EnterpriseCluster provides that via the proxy, while OSSCluster exposes the
+    # sharded OSS cluster API and expects a cluster-aware client. Changing this
+    # later forces the database to be recreated.
+    clustering_policy = "EnterpriseCluster"
+    # Langfuse queues live in Redis; evicting keys would drop queued work.
+    eviction_policy = "NoEviction"
   }
 
   tags = {
