@@ -26,3 +26,8 @@ output "cluster_ca_certificate" {
   value       = azurerm_kubernetes_cluster.this.kube_config[0].cluster_ca_certificate
   sensitive   = true
 }
+
+output "dns_name_servers" {
+  description = "Name servers of the DNS zone, for the delegation step"
+  value       = azurerm_dns_zone.this.name_servers
+}
