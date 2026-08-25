@@ -58,6 +58,17 @@ jobs:
           bump "$CHART" "$CHART_LATEST"
           bump "$APP" "$APP_LATEST"
 
+          # A bump that is never released does not reach anyone pinning a tag, so
+          # release it too. Only minor and patch updates: a major upstream bump
+          # needs a deliberately chosen module version.
+          REF=$(grep -oE '\?ref=[^"]+' README.md | head -1 | cut -d= -f2)
+          RELEASE="Leaving the module version alone, because a major upstream bump needs a deliberate one. Run the release workflow after merging."
+          if [ "${CHART%%.*}" = "${CHART_LATEST%%.*}" ] && [ "${APP%%.*}" = "${APP_LATEST%%.*}" ]; then
+            NEXT="${REF%.*}.$(( ${REF##*.} + 1 ))"
+            OLD="$REF" NEW="$NEXT" perl -pi -e 's{\?ref=\Q$ENV{OLD}\E\b}{?ref=$ENV{NEW}}g' README.md
+            RELEASE="Merging this releases \`$NEXT\`."
+          fi
+
           cat > "$RUNNER_TEMP/body.md" <<EOF
           | Component | From | To |
           | --- | --- | --- |
@@ -65,6 +76,8 @@ jobs:
           | Langfuse | \`$APP\` | [\`$APP_LATEST\`](https://github.com/langfuse/langfuse/releases/tag/v$APP_LATEST) |
 
           Rows where both versions match are unchanged. Read the linked release notes before merging: a major bump can need migration steps.
+
+          $RELEASE
 
           Opened by the weekly version check. Pull requests created with \`GITHUB_TOKEN\` do not trigger \`ci.yml\`, so close and reopen this one to run the checks.
           EOF
