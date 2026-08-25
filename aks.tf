@@ -9,6 +9,8 @@ resource "azurerm_subnet" "aks" {
 resource "azurerm_subnet_nat_gateway_association" "aks" {
   subnet_id      = azurerm_subnet.aks.id
   nat_gateway_id = azurerm_nat_gateway.this.id
+
+  depends_on = [azurerm_nat_gateway_public_ip_association.this]
 }
 
 resource "azurerm_user_assigned_identity" "aks" {
@@ -71,6 +73,8 @@ resource "azurerm_kubernetes_cluster" "this" {
     # and better control when the AGW is actually created.
     gateway_id = azurerm_application_gateway.this.id
   }
+
+  depends_on = [azurerm_subnet_nat_gateway_association.aks]
 }
 
 # Grant Network Contributor role to AGIC

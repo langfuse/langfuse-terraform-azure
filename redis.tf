@@ -22,12 +22,7 @@ resource "azurerm_managed_redis" "this" {
     # Access keys required for Langfuse connection
     access_keys_authentication_enabled = true
     client_protocol                    = "Encrypted"
-    # Langfuse connects as an ordinary (non-cluster) client through the chart's
-    # REDIS_CONNECTION_STRING, so it needs a single logical endpoint.
-    # EnterpriseCluster provides that via the proxy, while OSSCluster exposes the
-    # sharded OSS cluster API and expects a cluster-aware client. Changing this
-    # later forces the database to be recreated.
-    clustering_policy = "EnterpriseCluster"
+    clustering_policy                  = "NoCluster"
     # Langfuse queues live in Redis; evicting keys would drop queued work.
     eviction_policy = "NoEviction"
   }
@@ -67,7 +62,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "redis" {
 
 # A record for the Redis private endpoint
 resource "azurerm_private_dns_a_record" "redis" {
-  name                = azurerm_managed_redis.this.name
+  name                = trimsuffix(azurerm_managed_redis.this.hostname, ".redis.azure.net")
   private_dns_zone_id = azurerm_private_dns_zone.redis.id
   ttl                 = 300
   records             = [azurerm_private_endpoint.redis.private_service_connection[0].private_ip_address]

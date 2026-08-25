@@ -41,7 +41,7 @@ module "langfuse" {
   storage_subnet_address_prefix     = "10.226.2.0/24"
 
   # Optional: Configure the Kubernetes cluster
-  kubernetes_version  = "1.32"
+  kubernetes_version  = "1.36"
   aks_service_cidr    = "192.168.0.0/20"
   aks_dns_service_ip  = "192.168.0.10"
   node_pool_vm_size   = "Standard_D8s_v6"
@@ -65,7 +65,7 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "2.0.0"
+  langfuse_helm_chart_version = "2.0.2"
 
   # Optional: Pin the Langfuse application version (defaults to the latest
   # release at the time this module version was published)

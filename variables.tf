@@ -54,7 +54,7 @@ variable "storage_subnet_address_prefix" {
 variable "kubernetes_version" {
   description = "Kubernetes version for AKS cluster"
   type        = string
-  default     = "1.32"
+  default     = "1.36"
 }
 
 variable "aks_service_cidr" {
@@ -231,7 +231,7 @@ variable "external_clickhouse_password" {
 variable "langfuse_helm_chart_version" {
   description = "Version of the Langfuse Helm chart to deploy"
   type        = string
-  default     = "2.0.0"
+  default     = "2.0.2"
 }
 
 variable "app_version" {

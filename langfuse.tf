@@ -41,7 +41,7 @@ s3:
     value: ${azurerm_storage_account.this.name}
   secretAccessKey:
     secretKeyRef:
-      name: ${kubernetes_secret.langfuse.metadata[0].name}
+      name: ${kubernetes_secret_v1.langfuse.metadata[0].name}
       key: storage-access-key
   forcePathStyle: false
   eventUpload:
@@ -105,7 +105,7 @@ EOT
 langfuse:
   encryptionKey:
     secretKeyRef:
-      name: ${kubernetes_secret.langfuse.metadata[0].name}
+      name: ${kubernetes_secret_v1.langfuse.metadata[0].name}
       key: encryption-key
 EOT
   additional_env_values = length(var.additional_env) == 0 ? "" : <<EOT
@@ -133,7 +133,7 @@ langfuse:
 EOT
 }
 
-resource "kubernetes_namespace" "langfuse" {
+resource "kubernetes_namespace_v1" "langfuse" {
   metadata {
     name = "langfuse"
   }
@@ -155,10 +155,10 @@ resource "random_bytes" "encryption_key" {
   length = 32
 }
 
-resource "kubernetes_secret" "langfuse" {
+resource "kubernetes_secret_v1" "langfuse" {
   metadata {
     name      = "langfuse"
-    namespace = kubernetes_namespace.langfuse.metadata[0].name
+    namespace = kubernetes_namespace_v1.langfuse.metadata[0].name
   }
 
   data = {
@@ -177,7 +177,7 @@ resource "helm_release" "langfuse" {
   repository = "https://langfuse.github.io/langfuse-k8s"
   version    = var.langfuse_helm_chart_version
   chart      = "langfuse"
-  namespace  = kubernetes_namespace.langfuse.metadata[0].name
+  namespace  = kubernetes_namespace_v1.langfuse.metadata[0].name
 
   values = [
     local.langfuse_values,
@@ -188,7 +188,7 @@ resource "helm_release" "langfuse" {
   ]
 
   depends_on = [
-    kubernetes_secret.langfuse,
+    kubernetes_secret_v1.langfuse,
     helm_release.clickhouse_operator,
   ]
 

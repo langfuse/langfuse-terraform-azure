@@ -34,7 +34,7 @@ module "langfuse" {
   storage_subnet_address_prefix = "10.226.2.0/24"
 
   # Optional: Configure the Kubernetes cluster
-  kubernetes_version = "1.32"
+  kubernetes_version = "1.36"
   aks_service_cidr   = "192.168.0.0/20"
   aks_dns_service_ip = "192.168.0.10"
   node_pool_vm_size  = "Standard_D8s_v6"
@@ -59,7 +59,7 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "2.0.0"
+  langfuse_helm_chart_version = "2.0.2"
 
   # Optional: Pin the Langfuse application version. Defaults to the latest
   # release at the time this module version was published.
@@ -261,45 +261,45 @@ The module creates a complete Langfuse stack with the following Azure components
 
 ## Inputs
 
-| Name                              | Description                                   | Type   | Default              | Required |
-|-----------------------------------|-----------------------------------------------|--------|----------------------|:--------:|
-| name                              | Name prefix for resources                     | string | "langfuse"           |    no    |
-| domain                            | Domain name used for resource naming          | string | n/a                  |   yes    |
-| location                          | Azure region to deploy resources              | string | "westeurope"         |    no    |
-| virtual_network_address_prefix    | VNET address prefix                           | string | "10.224.0.0/12"      |    no    |
-| aks_subnet_address_prefix         | AKS subnet address prefix                     | string | "10.224.0.0/16"      |    no    |
-| app_gateway_subnet_address_prefix | Application Gateway subnet address prefix     | string | "10.225.0.0/16"      |    no    |
-| db_subnet_address_prefix          | Database subnet address prefix                | string | "10.226.0.0/24"      |    no    |
-| redis_subnet_address_prefix       | Redis subnet address prefix                   | string | "10.226.1.0/24"      |    no    |
-| storage_subnet_address_prefix     | Storage subnet address prefix                 | string | "10.226.2.0/24"      |    no    |
-| kubernetes_version                | Kubernetes version for AKS cluster            | string | "1.32"               |    no    |
-| aks_service_cidr                  | Network range used by Kubernetes service      | string | "192.168.0.0/20"     |    no    |
-| aks_dns_service_ip                | IP address for cluster service discovery      | string | "192.168.0.10"       |    no    |
-| use_encryption_key                | Whether to use encryption key for credentials | bool   | true                 |    no    |
-| node_pool_vm_size                 | VM size for AKS node pool                     | string | "Standard_D2s_v6"    |    no    |
-| node_pool_min_count               | Minimum number of nodes in AKS node pool      | number | 2                    |    no    |
-| node_pool_max_count               | Maximum number of nodes in AKS node pool      | number | 10                   |    no    |
-| postgres_instance_count           | Number of PostgreSQL instances                | number | 2                    |    no    |
-| postgres_ha_mode                  | HA mode for PostgreSQL                        | string | "SameZone"           |    no    |
-| postgres_sku_name                 | SKU name for PostgreSQL                       | string | "GP_Standard_D2s_v3" |    no    |
-| postgres_storage_mb               | Storage size in MB for PostgreSQL             | number | 32768                |    no    |
-| redis_sku_name                    | SKU name for Azure Managed Redis              | string | "Balanced_B3"        |    no    |
-| redis_high_availability           | Enable high availability for Redis            | bool   | true                |    no    |
-| app_gateway_capacity              | Capacity for Application Gateway              | number | 1                    |    no    |
-| use_ddos_protection               | Whether to use DDoS protection                | bool   | true                 |    no    |
-| clickhouse_replicas               | Number of in-cluster ClickHouse replicas      | number | 3                    |    no    |
-| clickhouse_keeper_replicas        | Number of ClickHouse Keeper replicas (1, 3 or 5) | number | 3                 |    no    |
-| clickhouse_storage_size           | Persistent volume size per ClickHouse replica | string | "100Gi"              |    no    |
-| clickhouse_keeper_storage_size    | Persistent volume size per Keeper replica     | string | "10Gi"               |    no    |
-| clickhouse_storage_class          | StorageClass for ClickHouse and Keeper volumes | string | "managed-csi-premium" |   no    |
-| clickhouse_resources              | Resource requests and limits per ClickHouse replica | object | { cpu = "2", memory = "8Gi" } | no |
-| clickhouse_operator_chart_version | Version of the ClickHouse operator Helm chart | string | "0.0.5"              |    no    |
-| cert_manager_chart_version        | Version of the cert-manager Helm chart        | string | "v1.20.2"            |    no    |
-| external_clickhouse               | Use an external ClickHouse (e.g. ClickHouse Cloud) instead of the in-cluster deployment. See [External ClickHouse](#external-clickhouse-bring-your-own). | object | null | no |
-| external_clickhouse_password      | Password for the external ClickHouse user     | string | ""                   |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy  | string | "2.0.0"              |    no    |
-| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published. | string | "4.14.0" | no |
-| additional_env                    | Additional environment variables for Langfuse | list   | []                   |    no    |
+| Name                              | Description                                                                                                                                              | Type   | Default                       | Required |
+|-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------|-------------------------------|:--------:|
+| name                              | Name prefix for resources                                                                                                                                | string | "langfuse"                    |    no    |
+| domain                            | Domain name used for resource naming                                                                                                                     | string | n/a                           |   yes    |
+| location                          | Azure region to deploy resources                                                                                                                         | string | "westeurope"                  |    no    |
+| virtual_network_address_prefix    | VNET address prefix                                                                                                                                      | string | "10.224.0.0/12"               |    no    |
+| aks_subnet_address_prefix         | AKS subnet address prefix                                                                                                                                | string | "10.224.0.0/16"               |    no    |
+| app_gateway_subnet_address_prefix | Application Gateway subnet address prefix                                                                                                                | string | "10.225.0.0/16"               |    no    |
+| db_subnet_address_prefix          | Database subnet address prefix                                                                                                                           | string | "10.226.0.0/24"               |    no    |
+| redis_subnet_address_prefix       | Redis subnet address prefix                                                                                                                              | string | "10.226.1.0/24"               |    no    |
+| storage_subnet_address_prefix     | Storage subnet address prefix                                                                                                                            | string | "10.226.2.0/24"               |    no    |
+| kubernetes_version                | Kubernetes version for AKS cluster                                                                                                                       | string | "1.36"                        |    no    |
+| aks_service_cidr                  | Network range used by Kubernetes service                                                                                                                 | string | "192.168.0.0/20"              |    no    |
+| aks_dns_service_ip                | IP address for cluster service discovery                                                                                                                 | string | "192.168.0.10"                |    no    |
+| use_encryption_key                | Whether to use encryption key for credentials                                                                                                            | bool   | true                          |    no    |
+| node_pool_vm_size                 | VM size for AKS node pool                                                                                                                                | string | "Standard_D2s_v6"             |    no    |
+| node_pool_min_count               | Minimum number of nodes in AKS node pool                                                                                                                 | number | 2                             |    no    |
+| node_pool_max_count               | Maximum number of nodes in AKS node pool                                                                                                                 | number | 10                            |    no    |
+| postgres_instance_count           | Number of PostgreSQL instances                                                                                                                           | number | 2                             |    no    |
+| postgres_ha_mode                  | HA mode for PostgreSQL                                                                                                                                   | string | "SameZone"                    |    no    |
+| postgres_sku_name                 | SKU name for PostgreSQL                                                                                                                                  | string | "GP_Standard_D2s_v3"          |    no    |
+| postgres_storage_mb               | Storage size in MB for PostgreSQL                                                                                                                        | number | 32768                         |    no    |
+| redis_sku_name                    | SKU name for Azure Managed Redis                                                                                                                         | string | "Balanced_B3"                 |    no    |
+| redis_high_availability           | Enable high availability for Redis                                                                                                                       | bool   | true                          |    no    |
+| app_gateway_capacity              | Capacity for Application Gateway                                                                                                                         | number | 1                             |    no    |
+| use_ddos_protection               | Whether to use DDoS protection                                                                                                                           | bool   | true                          |    no    |
+| clickhouse_replicas               | Number of in-cluster ClickHouse replicas                                                                                                                 | number | 3                             |    no    |
+| clickhouse_keeper_replicas        | Number of ClickHouse Keeper replicas (1, 3 or 5)                                                                                                         | number | 3                             |    no    |
+| clickhouse_storage_size           | Persistent volume size per ClickHouse replica                                                                                                            | string | "100Gi"                       |    no    |
+| clickhouse_keeper_storage_size    | Persistent volume size per Keeper replica                                                                                                                | string | "10Gi"                        |    no    |
+| clickhouse_storage_class          | StorageClass for ClickHouse and Keeper volumes                                                                                                           | string | "managed-csi-premium"         |    no    |
+| clickhouse_resources              | Resource requests and limits per ClickHouse replica                                                                                                      | object | { cpu = "2", memory = "8Gi" } |    no    |
+| clickhouse_operator_chart_version | Version of the ClickHouse operator Helm chart                                                                                                            | string | "0.0.5"                       |    no    |
+| cert_manager_chart_version        | Version of the cert-manager Helm chart                                                                                                                   | string | "v1.20.2"                     |    no    |
+| external_clickhouse               | Use an external ClickHouse (e.g. ClickHouse Cloud) instead of the in-cluster deployment. See [External ClickHouse](#external-clickhouse-bring-your-own). | object | null                          |    no    |
+| external_clickhouse_password      | Password for the external ClickHouse user                                                                                                                | string | ""                            |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy                                                                                                             | string | "2.0.2"                       |    no    |
+| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published.                 | string | "4.14.0"                      |    no    |
+| additional_env                    | Additional environment variables for Langfuse                                                                                                            | list   | []                            |    no    |
 
 ## Outputs
 
