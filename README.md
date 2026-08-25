@@ -2,8 +2,6 @@
 
 # Azure Langfuse Terraform module
 
-> This module is a pre-release version and its interface may change. Please review the changelog between each release and create a GitHub issue for any problems or feature requests.
-
 This repository contains a Terraform module for deploying [Langfuse](https://langfuse.com/) - the open-source LLM observability platform - on Azure.
 This module aims to provide a production-ready, secure, and scalable deployment using managed services whenever possible.
 
@@ -175,14 +173,26 @@ module "langfuse" {
 
 Set `cluster_enabled = false` for ClickHouse Cloud on Azure or for single-node deployments. Make sure the AKS cluster can reach the external ClickHouse (for ClickHouse Cloud, check the IP allowlist or use Private Link).
 
-### Migrating from module versions <= 0.4.x
+## Upgrading from 0.4.x to 1.x
 
-Earlier versions of this module deployed Langfuse v3 with the Bitnami-based Helm chart v1, which ran ClickHouse (and ZooKeeper) as a Bitnami subchart. **Upgrading is a breaking change**: the operator-managed ClickHouse starts empty, and the Helm chart refuses a raw in-place `helm upgrade` that would replace leftover Bitnami volumes. Existing installations must migrate in two steps:
+`1.x` is a **clean Langfuse v4 installation on Helm chart v2**. It does not migrate an existing deployment for you, and it changes infrastructure that already exists. New installations can skip this section.
 
-1. Migrate the chart deployment (copying the ClickHouse data) following the [chart v1 → v2 migration guide](https://github.com/langfuse/langfuse-k8s/tree/main/examples/upgrade-v1-to-v2).
+**Migrate the Langfuse deployment yourself first.** `0.4.x` ran Langfuse v3 on the Bitnami-based Helm chart v1, where ClickHouse (and ZooKeeper) were Bitnami subcharts. The operator-managed ClickHouse in chart v2 starts empty, and the chart deliberately refuses an in-place `helm upgrade` that would replace leftover Bitnami volumes:
+
+1. Migrate the chart deployment, copying the ClickHouse data, following the [chart v1 → v2 migration guide](https://github.com/langfuse/langfuse-k8s/tree/main/examples/upgrade-v1-to-v2).
 2. Upgrade the application following the [Langfuse v3 → v4 upgrade guide](https://langfuse.com/self-hosting/upgrade/upgrade-guides/upgrade-v3-to-v4).
 
-New installations are unaffected. If you need to stay on the Bitnami-based deployment for now, pin this module to `0.4.x`.
+**Then expect these changes when you switch the module version:**
+
+| Change                                                                                                                                                                                  | What it means for you                                                                                                                                                                               |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Azure Cache for Redis is replaced by Azure Managed Redis. `redis_family` and `redis_capacity` are **removed**, and `redis_sku_name` now takes Managed Redis SKUs such as `Balanced_B3`. | Update your module block, using `redis_high_availability` in place of the old capacity settings. The cache itself is **recreated**, so anything queued in Redis is lost — drain the workers first.  |
+| The Key Vault is secured with Azure RBAC instead of access policies.                                                                                                                    | Access policies no longer apply, and the identity running `terraform apply` needs **Owner** or **User Access Administrator**.                                                                       |
+| The `azurerm` provider requirement moves to `~> 5.0`.                                                                                                                                   | Private DNS zone links and A records changed arguments in azurerm 5. Check the plan: if they are reported as replacements, private endpoint name resolution drops briefly while they are recreated. |
+| Terraform `>= 1.3` and the `helm` provider `>= 2.7` are required.                                                                                                                       | Run `terraform init -upgrade`.                                                                                                                                                                      |
+| cert-manager and the ClickHouse operator are installed as new releases.                                                                                                                 | Additive prerequisites of chart v2.                                                                                                                                                                 |
+
+**Read the plan before you apply**, and treat anything reported as *must be replaced* or *will be destroyed* as a stop sign. If you are not ready for any of this, pin the module to `0.4.x`.
 
 ## Architecture
 
