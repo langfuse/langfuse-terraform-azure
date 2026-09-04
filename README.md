@@ -107,6 +107,9 @@ provider "helm" {
 }
 ```
 
+> [!IMPORTANT]
+> PostgreSQL and ClickHouse must both use UTC. Verify both database server time zones before deploying, especially when using external or customized services. See [Troubleshooting self-hosting timezone errors](https://langfuse.com/faq/all/self-hosting-timezone-errors) for verification steps.
+
 2. Apply the DNS zone and the AKS cluster.
 
 ```bash
