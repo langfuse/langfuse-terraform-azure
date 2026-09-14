@@ -14,7 +14,7 @@ This module aims to provide a production-ready, secure, and scalable deployment 
 
 ```hcl
 module "langfuse" {
-  source = "github.com/langfuse/langfuse-terraform-azure?ref=1.0.2"
+  source = "github.com/langfuse/langfuse-terraform-azure?ref=1.0.3"
 
   domain              = "langfuse.example.com"
   location            = "westeurope"  # Optional: defaults to westeurope
@@ -57,11 +57,11 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "2.0.2"
+  langfuse_helm_chart_version = "2.1.0"
 
   # Optional: Pin the Langfuse application version. Defaults to the latest
   # release at the time this module version was published.
-  app_version = "4.24.0"
+  app_version = "4.35.0"
   
   # Optional: Add additional environment variables
   additional_env = [
@@ -139,7 +139,7 @@ The module deploys the Langfuse Helm chart v2 (`langfuse_helm_chart_version`), w
 ```hcl
 module "langfuse" {
   # ...
-  app_version = "4.24.0"
+  app_version = "4.35.0"
 }
 ```
 
@@ -310,8 +310,8 @@ The module creates a complete Langfuse stack with the following Azure components
 | cert_manager_chart_version        | Version of the cert-manager Helm chart                                                                                                                   | string | "v1.20.2"                     |    no    |
 | external_clickhouse               | Use an external ClickHouse (e.g. ClickHouse Cloud) instead of the in-cluster deployment. See [External ClickHouse](#external-clickhouse-bring-your-own). | object | null                          |    no    |
 | external_clickhouse_password      | Password for the external ClickHouse user                                                                                                                | string | ""                            |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy                                                                                                             | string | "2.0.2"                       |    no    |
-| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published.                 | string | "4.24.0"                      |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy                                                                                                             | string | "2.1.0"                       |    no    |
+| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published.                 | string | "4.35.0"                      |    no    |
 | additional_env                    | Additional environment variables for Langfuse                                                                                                            | list   | []                            |    no    |
 
 ## Outputs
