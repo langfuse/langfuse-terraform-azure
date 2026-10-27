@@ -231,13 +231,13 @@ variable "external_clickhouse_password" {
 variable "langfuse_helm_chart_version" {
   description = "Version of the Langfuse Helm chart to deploy"
   type        = string
-  default     = "2.1.5"
+  default     = "2.1.7"
 }
 
 variable "app_version" {
-  description = "Langfuse application version (Docker image tag) to deploy, e.g. \"4.63.0\". Defaults to the latest Langfuse release at the time this module version was published. See https://github.com/langfuse/langfuse/releases."
+  description = "Langfuse application version (Docker image tag) to deploy, e.g. \"4.70.1\". Defaults to the latest Langfuse release at the time this module version was published. See https://github.com/langfuse/langfuse/releases."
   type        = string
-  default     = "4.63.0"
+  default     = "4.70.1"
 }
 
 variable "additional_env" {
