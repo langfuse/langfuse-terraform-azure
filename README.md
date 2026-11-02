@@ -14,7 +14,7 @@ This module aims to provide a production-ready, secure, and scalable deployment 
 
 ```hcl
 module "langfuse" {
-  source = "github.com/langfuse/langfuse-terraform-azure?ref=1.0.10"
+  source = "github.com/langfuse/langfuse-terraform-azure?ref=1.0.11"
 
   domain              = "langfuse.example.com"
   location            = "westeurope"  # Optional: defaults to westeurope
