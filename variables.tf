@@ -231,7 +231,7 @@ variable "external_clickhouse_password" {
 variable "langfuse_helm_chart_version" {
   description = "Version of the Langfuse Helm chart to deploy"
   type        = string
-  default     = "2.2.0"
+  default     = "2.2.1"
 }
 
 variable "app_version" {
