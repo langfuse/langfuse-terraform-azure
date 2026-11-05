@@ -114,7 +114,7 @@ langfuse:
 %{for env in var.additional_env}
   - name: ${env.name}
 %{if env.value != null}
-    value: "${env.value}"
+    value: ${jsonencode(env.value)}
 %{endif}
 %{if env.valueFrom != null}
     valueFrom:
