@@ -14,7 +14,7 @@ This module aims to provide a production-ready, secure, and scalable deployment 
 
 ```hcl
 module "langfuse" {
-  source = "github.com/langfuse/langfuse-terraform-azure?ref=1.0.12"
+  source = "github.com/langfuse/langfuse-terraform-azure?ref=1.0.13"
 
   domain              = "langfuse.example.com"
   location            = "westeurope"  # Optional: defaults to westeurope
@@ -61,7 +61,7 @@ module "langfuse" {
 
   # Optional: Pin the Langfuse application version. Defaults to the latest
   # release at the time this module version was published.
-  app_version = "4.77.0"
+  app_version = "4.80.0"
   
   # Optional: Add additional environment variables
   additional_env = [
@@ -139,7 +139,7 @@ The module deploys the Langfuse Helm chart v2 (`langfuse_helm_chart_version`), w
 ```hcl
 module "langfuse" {
   # ...
-  app_version = "4.77.0"
+  app_version = "4.80.0"
 }
 ```
 
@@ -311,7 +311,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | external_clickhouse               | Use an external ClickHouse (e.g. ClickHouse Cloud) instead of the in-cluster deployment. See [External ClickHouse](#external-clickhouse-bring-your-own). | object | null                          |    no    |
 | external_clickhouse_password      | Password for the external ClickHouse user                                                                                                                | string | ""                            |    no    |
 | langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy                                                                                                             | string | "2.2.4"                       |    no    |
-| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published.                 | string | "4.77.0"                      |    no    |
+| app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published.                 | string | "4.80.0"                      |    no    |
 | additional_env                    | Additional environment variables for Langfuse                                                                                                            | list   | []                            |    no    |
 
 ## Outputs
