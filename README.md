@@ -132,6 +132,68 @@ terraform output dns_name_servers
 terraform apply
 ```
 
+## TLS certificate
+
+The Application Gateway HTTPS listener uses a self-signed certificate in Key Vault. To serve a certificate your clients already trust, pass a PEM server certificate and its private key. Put the leaf certificate first. Include intermediate certificates and the CA after the leaf in `ssl_certificate_body`, or pass that chain separately as `ssl_certificate_ca`. The module packages them as a PKCS#12 secret in Key Vault and uses that secret for the listener. The self-signed certificate is not created.
+
+```hcl
+variable "ssl_certificate_private_key" {
+  type      = string
+  sensitive = true
+}
+
+module "langfuse" {
+  source = "github.com/langfuse/langfuse-terraform-azure"
+
+  domain = "langfuse.example.com"
+
+  ssl_certificate_body        = file("fullchain.pem")
+  ssl_certificate_private_key = var.ssl_certificate_private_key
+
+  # When the chain is a separate file, pass the leaf as ssl_certificate_body
+  # and the intermediates and CA here instead of embedding them in the body.
+  # ssl_certificate_ca = file("chain.pem")
+}
+```
+
+The private key must be unencrypted PEM. It is stored in Terraform state, so keep the state backend access-controlled.
+
+To use a PKCS#12 certificate that is already in Key Vault, set `ssl_certificate_key_vault_secret_id` to the secret's versionless ID. The secret content type must be `application/x-pkcs12`. The Application Gateway user-assigned identity needs the Key Vault Secrets User role on that vault (the module grants this on the Key Vault it creates).
+
+```hcl
+module "langfuse" {
+  source = "github.com/langfuse/langfuse-terraform-azure"
+
+  domain = "langfuse.example.com"
+
+  ssl_certificate_key_vault_secret_id = "https://corp.vault.azure.net/secrets/langfuse-tls"
+}
+```
+
+> [!IMPORTANT]
+> `ssl_certificate` on the Application Gateway is listed in `lifecycle.ignore_changes`. Terraform attaches the certificate when it creates the gateway and leaves it in place after that, because the ingress controller manages the gateway.
+>
+> Set the custom certificate before the apply that creates the Application Gateway. The listener is created with it.
+>
+> On a gateway that already exists, a full apply stores an uploaded certificate as a new Key Vault secret and deletes the self-signed certificate, but it does not retarget the listener. The listener keeps the previous secret ID, so HTTPS fails once that certificate is gone. Point the gateway at the new secret while the self-signed certificate is still in place:
+>
+> 1. Apply only the new secret: `terraform apply -target=module.langfuse.azurerm_key_vault_secret.ssl_certificate`
+> 2. Update the gateway SSL certificate whose name is the module `name` (`langfuse` by default) to the versionless ID from `terraform output -raw ssl_certificate_key_vault_secret_id`:
+>
+>    ```bash
+>    az network application-gateway ssl-cert update \
+>      --resource-group <resource-group> \
+>      --gateway-name <application-gateway-name> \
+>      --name langfuse \
+>      --key-vault-secret-id "$(terraform output -raw ssl_certificate_key_vault_secret_id)"
+>    ```
+>
+> 3. Apply the rest of the configuration: `terraform apply`
+>
+> Deployments that keep the self-signed certificate record it at `azurerm_key_vault_certificate.this[0]`. The certificate is not recreated.
+
+Updating `ssl_certificate_body` or `ssl_certificate_private_key` publishes a new version of the same Key Vault secret. A listener that already references that versionless ID picks up the new version.
+
 ## Langfuse version
 
 The module deploys the Langfuse Helm chart v2 (`langfuse_helm_chart_version`), which ships [Langfuse v4](https://langfuse.com/docs/v4). The Langfuse application version is pinned explicitly through the `app_version` variable, which defaults to the latest Langfuse release at the time the module version was published. To upgrade Langfuse, set `app_version` to a newer [release](https://github.com/langfuse/langfuse/releases):
@@ -252,6 +314,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | random     | >= 3.0  |
 | tls        | >= 3.0  |
 | time       | >= 0.9  |
+| pkcs12     | ~> 0.4  |
 
 ## Resources
 
@@ -299,6 +362,10 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_sku_name                    | SKU name for Azure Managed Redis                                                                                                                         | string | "Balanced_B3"                 |    no    |
 | redis_high_availability           | Enable high availability for Redis                                                                                                                       | bool   | true                          |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway                                                                                                                         | number | 1                             |    no    |
+| ssl_certificate_body              | PEM server certificate for the Application Gateway, leaf first. Include the chain here or in `ssl_certificate_ca`. Empty uses the self-signed certificate. | string | `""`                          |    no    |
+| ssl_certificate_private_key       | Unencrypted PEM private key for `ssl_certificate_body`                                                                                                   | string | `""`                          |    no    |
+| ssl_certificate_ca                | PEM intermediates and CA bundled with the server certificate when they are not already in `ssl_certificate_body`                                        | string | `""`                          |    no    |
+| ssl_certificate_key_vault_secret_id | Versionless ID of an existing Key Vault PKCS#12 secret. When set, the self-signed certificate is not created.                                        | string | `""`                          |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                                                                                                                           | bool   | true                          |    no    |
 | clickhouse_replicas               | Number of in-cluster ClickHouse replicas                                                                                                                 | number | 3                             |    no    |
 | clickhouse_keeper_replicas        | Number of ClickHouse Keeper replicas (1, 3 or 5)                                                                                                         | number | 3                             |    no    |
@@ -324,6 +391,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | cluster_client_key         | The client key for the AKS cluster                     |
 | cluster_ca_certificate     | The CA certificate for the AKS cluster                 |
 | dns_name_servers           | Name servers of the DNS zone, for the delegation step  |
+| ssl_certificate_key_vault_secret_id | Versionless Key Vault secret ID of the TLS certificate selected for the Application Gateway HTTPS listener |
 
 ## Support
 

@@ -151,9 +151,12 @@ resource "azurerm_application_gateway" "this" {
     public_ip_address_id = azurerm_public_ip.appgw.id
   }
 
+  # Versionless Key Vault secret ID of the listener certificate. The gateway
+  # reads it when the gateway is created; ssl_certificate is listed in
+  # lifecycle.ignore_changes below.
   ssl_certificate {
     name                = var.name
-    key_vault_secret_id = azurerm_key_vault_certificate.this.versionless_secret_id
+    key_vault_secret_id = local.application_gateway_ssl_certificate_secret_id
   }
 
   backend_address_pool {
@@ -201,10 +204,27 @@ resource "azurerm_application_gateway" "this" {
     priority                   = 2
   }
 
-  # The AppGW is later managed by the  Ingress Controller, but the Backend address
-  # Pool is required to creat the resource. Therefore, "lifecycle:ignore_changes" is 
-  # used to prevent TF from managing the gateway.
+  # The ingress controller manages the gateway after Terraform creates it.
+  # The backend pool has to exist at creation, and ssl_certificate is applied
+  # only then: later plans leave the listener certificate where it is.
+  depends_on = [time_sleep.key_vault_rbac_propagation]
+
   lifecycle {
+    precondition {
+      condition     = (var.ssl_certificate_body == "") == (var.ssl_certificate_private_key == "")
+      error_message = "ssl_certificate_body and ssl_certificate_private_key must both be set, or both left empty."
+    }
+
+    precondition {
+      condition     = var.ssl_certificate_ca == "" || var.ssl_certificate_body != ""
+      error_message = "ssl_certificate_ca requires ssl_certificate_body and ssl_certificate_private_key."
+    }
+
+    precondition {
+      condition     = var.ssl_certificate_key_vault_secret_id == "" || (var.ssl_certificate_body == "" && var.ssl_certificate_private_key == "" && var.ssl_certificate_ca == "")
+      error_message = "ssl_certificate_key_vault_secret_id cannot be combined with ssl_certificate_body, ssl_certificate_private_key, or ssl_certificate_ca."
+    }
+
     ignore_changes = [
       tags,
       backend_address_pool,

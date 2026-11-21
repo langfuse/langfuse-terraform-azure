@@ -140,6 +140,55 @@ variable "app_gateway_capacity" {
   default     = 1
 }
 
+variable "ssl_certificate_body" {
+  description = "PEM-encoded server certificate for the Application Gateway HTTPS listener. Place the leaf certificate first, followed by intermediate certificates and the CA when the chain is included here. Set this together with ssl_certificate_private_key to use this certificate instead of the self-signed Key Vault certificate."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.ssl_certificate_body == "" || can(regex("-----BEGIN CERTIFICATE-----", var.ssl_certificate_body))
+    error_message = "ssl_certificate_body must be empty or a PEM certificate beginning with -----BEGIN CERTIFICATE-----."
+  }
+}
+
+variable "ssl_certificate_private_key" {
+  description = "Unencrypted PEM private key for ssl_certificate_body (BEGIN PRIVATE KEY, BEGIN RSA PRIVATE KEY, or BEGIN EC PRIVATE KEY)."
+  type        = string
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition = var.ssl_certificate_private_key == "" || (
+      can(regex("-----BEGIN (RSA |EC )?PRIVATE KEY-----", var.ssl_certificate_private_key)) &&
+      !can(regex("-----BEGIN ENCRYPTED PRIVATE KEY-----", var.ssl_certificate_private_key)) &&
+      !can(regex("Proc-Type: 4,ENCRYPTED", var.ssl_certificate_private_key))
+    )
+    error_message = "ssl_certificate_private_key must be empty or an unencrypted PEM private key (BEGIN PRIVATE KEY, BEGIN RSA PRIVATE KEY, or BEGIN EC PRIVATE KEY)."
+  }
+}
+
+variable "ssl_certificate_ca" {
+  description = "PEM-encoded intermediate certificates and CA bundled with the server certificate, in the order they should be sent to clients. Optional when ssl_certificate_body already contains the chain. Used only with ssl_certificate_body and ssl_certificate_private_key."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.ssl_certificate_ca == "" || can(regex("-----BEGIN CERTIFICATE-----", var.ssl_certificate_ca))
+    error_message = "ssl_certificate_ca must be empty or one or more PEM certificates beginning with -----BEGIN CERTIFICATE-----."
+  }
+}
+
+variable "ssl_certificate_key_vault_secret_id" {
+  description = "Versionless Key Vault secret ID of an existing PKCS#12 certificate (content type application/x-pkcs12), for example https://<vault>.vault.azure.net/secrets/<name>. When set, the Application Gateway uses this secret and the self-signed certificate is not created. The Application Gateway identity needs the Key Vault Secrets User role on the vault that holds the secret."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.ssl_certificate_key_vault_secret_id == "" || can(regex("^https://[^/]+/secrets/[^/]+(/[^/]+)?/?$", var.ssl_certificate_key_vault_secret_id))
+    error_message = "ssl_certificate_key_vault_secret_id must be empty or a Key Vault secret URI such as https://<vault>.vault.azure.net/secrets/<name>."
+  }
+}
+
 variable "use_ddos_protection" {
   description = "Wheter or not to use a DDoS protection plan"
   type        = bool

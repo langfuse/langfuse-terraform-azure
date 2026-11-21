@@ -73,7 +73,78 @@ resource "azurerm_private_dns_a_record" "key_vault" {
   records             = [azurerm_private_endpoint.key_vault.private_service_connection[0].private_ip_address]
 }
 
+locals {
+  # Certificate material uploaded into this module's Key Vault. An incomplete
+  # set still selects this path so the gateway preconditions can reject it.
+  use_uploaded_ssl_certificate = var.ssl_certificate_key_vault_secret_id == "" && (
+    var.ssl_certificate_body != "" ||
+    var.ssl_certificate_private_key != "" ||
+    var.ssl_certificate_ca != ""
+  )
+
+  use_generated_ssl_certificate = var.ssl_certificate_key_vault_secret_id == "" && !local.use_uploaded_ssl_certificate
+
+  # Exactly one of the three sources is configured: an existing secret, an
+  # uploaded certificate, or the self-signed certificate. Splatting keeps a
+  # count of zero from being indexed.
+  application_gateway_ssl_certificate_secret_id = element(concat(
+    var.ssl_certificate_key_vault_secret_id != "" ? [var.ssl_certificate_key_vault_secret_id] : [],
+    azurerm_key_vault_secret.ssl_certificate[*].versionless_id,
+    azurerm_key_vault_certificate.this[*].versionless_secret_id,
+  ), 0)
+}
+
+# Grant the Terraform deployer Key Vault Secrets Officer so an uploaded
+# certificate can be stored in this vault.
+resource "azurerm_role_assignment" "keyvault_secrets_officer" {
+  count                = local.use_uploaded_ssl_certificate ? 1 : 0
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Role assignments are eventually consistent: the Key Vault data plane keeps
+# rejecting requests for a while after an assignment is created, so creating the
+# secret right away fails with a 403.
+resource "time_sleep" "key_vault_secrets_officer_rbac_propagation" {
+  count           = local.use_uploaded_ssl_certificate ? 1 : 0
+  create_duration = "60s"
+
+  depends_on = [azurerm_role_assignment.keyvault_secrets_officer]
+}
+
+# Application Gateway accepts a PKCS#12 (PFX) secret. TripleDES-SHA1 is the
+# encoding it can parse, including an empty password. The leaf is the first
+# certificate in the body; further certificates in the body and ssl_certificate_ca
+# are the chain sent to clients.
+resource "pkcs12_from_pem" "ssl_certificate" {
+  count           = local.use_uploaded_ssl_certificate ? 1 : 0
+  password        = ""
+  cert_pem        = replace(var.ssl_certificate_body, "\r\n", "\n")
+  private_key_pem = replace(var.ssl_certificate_private_key, "\r\n", "\n")
+  ca_pem          = replace(var.ssl_certificate_ca, "\r\n", "\n")
+  encoding        = "legacyDES"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "azurerm_key_vault_secret" "ssl_certificate" {
+  count        = local.use_uploaded_ssl_certificate ? 1 : 0
+  name         = module.naming.key_vault_secret.name
+  value        = pkcs12_from_pem.ssl_certificate[0].result
+  key_vault_id = azurerm_key_vault.this.id
+  content_type = "application/x-pkcs12"
+
+  depends_on = [
+    time_sleep.key_vault_secrets_officer_rbac_propagation,
+    time_sleep.key_vault_rbac_propagation,
+  ]
+}
+
 resource "azurerm_key_vault_certificate" "this" {
+  count        = local.use_generated_ssl_certificate ? 1 : 0
   name         = module.naming.key_vault_certificate.name
   key_vault_id = azurerm_key_vault.this.id
 
@@ -124,4 +195,9 @@ resource "azurerm_key_vault_certificate" "this" {
     time_sleep.key_vault_rbac_propagation,
     azurerm_dns_zone.this
   ]
+}
+
+moved {
+  from = azurerm_key_vault_certificate.this
+  to   = azurerm_key_vault_certificate.this[0]
 }
