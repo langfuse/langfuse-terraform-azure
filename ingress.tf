@@ -152,8 +152,11 @@ resource "azurerm_application_gateway" "this" {
   }
 
   ssl_certificate {
-    name                = var.name
-    key_vault_secret_id = azurerm_key_vault_certificate.this.versionless_secret_id
+    name = var.name
+    key_vault_secret_id = element(concat(
+      var.ssl_certificate_key_vault_secret_id != "" ? [var.ssl_certificate_key_vault_secret_id] : [],
+      azurerm_key_vault_certificate.this[*].versionless_secret_id,
+    ), 0)
   }
 
   backend_address_pool {

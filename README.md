@@ -132,6 +132,22 @@ terraform output dns_name_servers
 terraform apply
 ```
 
+## TLS certificate
+
+By default the HTTPS listener uses a self-signed certificate in Key Vault. To use your own certificate, including the CA chain, store a PKCS#12 bundle (content type `application/x-pkcs12`) in Key Vault and set its versionless secret ID. The Application Gateway identity needs Key Vault Secrets User on that vault.
+
+```hcl
+module "langfuse" {
+  source = "github.com/langfuse/langfuse-terraform-azure"
+
+  domain = "langfuse.example.com"
+
+  ssl_certificate_key_vault_secret_id = "https://myvault.vault.azure.net/secrets/langfuse-tls"
+}
+```
+
+On an existing gateway, `ssl_certificate` is in `lifecycle.ignore_changes`, so Terraform does not retarget the listener after the gateway is created.
+
 ## Langfuse version
 
 The module deploys the Langfuse Helm chart v2 (`langfuse_helm_chart_version`), which ships [Langfuse v4](https://langfuse.com/docs/v4). The Langfuse application version is pinned explicitly through the `app_version` variable, which defaults to the latest Langfuse release at the time the module version was published. To upgrade Langfuse, set `app_version` to a newer [release](https://github.com/langfuse/langfuse/releases):
@@ -299,6 +315,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_sku_name                    | SKU name for Azure Managed Redis                                                                                                                         | string | "Balanced_B3"                 |    no    |
 | redis_high_availability           | Enable high availability for Redis                                                                                                                       | bool   | true                          |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway                                                                                                                         | number | 1                             |    no    |
+| ssl_certificate_key_vault_secret_id | Versionless Key Vault secret ID of a PKCS#12 certificate (leaf, key, and CA chain). Empty uses the self-signed certificate.                            | string | `""`                          |    no    |
 | use_ddos_protection               | Whether to use DDoS protection                                                                                                                           | bool   | true                          |    no    |
 | clickhouse_replicas               | Number of in-cluster ClickHouse replicas                                                                                                                 | number | 3                             |    no    |
 | clickhouse_keeper_replicas        | Number of ClickHouse Keeper replicas (1, 3 or 5)                                                                                                         | number | 3                             |    no    |

@@ -74,6 +74,7 @@ resource "azurerm_private_dns_a_record" "key_vault" {
 }
 
 resource "azurerm_key_vault_certificate" "this" {
+  count        = var.ssl_certificate_key_vault_secret_id == "" ? 1 : 0
   name         = module.naming.key_vault_certificate.name
   key_vault_id = azurerm_key_vault.this.id
 
@@ -124,4 +125,9 @@ resource "azurerm_key_vault_certificate" "this" {
     time_sleep.key_vault_rbac_propagation,
     azurerm_dns_zone.this
   ]
+}
+
+moved {
+  from = azurerm_key_vault_certificate.this
+  to   = azurerm_key_vault_certificate.this[0]
 }

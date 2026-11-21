@@ -140,6 +140,17 @@ variable "app_gateway_capacity" {
   default     = 1
 }
 
+variable "ssl_certificate_key_vault_secret_id" {
+  description = "Versionless Key Vault secret ID of a PKCS#12 certificate for the Application Gateway HTTPS listener. The secret must include the leaf certificate, private key, and CA chain (content type application/x-pkcs12). When set, the self-signed certificate is not created. The Application Gateway identity needs Key Vault Secrets User on that vault."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.ssl_certificate_key_vault_secret_id == "" || can(regex("^https://[^/]+/secrets/[^/]+(/[^/]+)?/?$", var.ssl_certificate_key_vault_secret_id))
+    error_message = "ssl_certificate_key_vault_secret_id must be empty or a Key Vault secret URI such as https://<vault>.vault.azure.net/secrets/<name>."
+  }
+}
+
 variable "use_ddos_protection" {
   description = "Wheter or not to use a DDoS protection plan"
   type        = bool
