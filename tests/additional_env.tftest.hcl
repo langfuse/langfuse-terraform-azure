@@ -14,7 +14,6 @@ mock_provider "helm" {}
 mock_provider "random" {}
 mock_provider "tls" {}
 mock_provider "time" {}
-mock_provider "pkcs12" {}
 
 variables {
   domain = "langfuse.example.com"

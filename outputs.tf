@@ -31,8 +31,3 @@ output "dns_name_servers" {
   description = "Name servers of the DNS zone, for the delegation step"
   value       = azurerm_dns_zone.this.name_servers
 }
-
-output "ssl_certificate_key_vault_secret_id" {
-  description = "Versionless Key Vault secret ID of the TLS certificate selected for the Application Gateway HTTPS listener."
-  value       = local.application_gateway_ssl_certificate_secret_id
-}

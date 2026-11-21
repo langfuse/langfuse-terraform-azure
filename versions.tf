@@ -26,11 +26,6 @@ terraform {
       source  = "hashicorp/time"
       version = ">= 0.9"
     }
-    # Builds the PKCS#12 bundle Application Gateway reads from Key Vault.
-    pkcs12 = {
-      source  = "chilicat/pkcs12"
-      version = "~> 0.4"
-    }
   }
 }
 
