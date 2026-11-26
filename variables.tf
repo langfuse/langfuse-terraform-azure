@@ -141,7 +141,7 @@ variable "app_gateway_capacity" {
 }
 
 variable "ssl_certificate_key_vault_secret_id" {
-  description = "Versionless Key Vault secret ID of a PKCS#12 certificate for the Application Gateway HTTPS listener. The secret must include the leaf certificate, private key, and CA chain (content type application/x-pkcs12). When set, the self-signed certificate is not created. The Application Gateway identity needs Key Vault Secrets User on that vault."
+  description = "Versionless Key Vault secret ID of a PKCS#12 certificate for the Application Gateway HTTPS listener. The secret must include the leaf certificate, private key, and CA chain (content type application/x-pkcs12). When set, the self-signed certificate is not created. The Application Gateway identity needs Key Vault Secrets User on that vault. When enable_ai_gateway is true and gateway_ssl_certificate_key_vault_secret_id is unset, this certificate is also used for gateway_domain and must cover it."
   type        = string
   default     = ""
 
@@ -240,15 +240,46 @@ variable "external_clickhouse_password" {
 }
 
 variable "langfuse_helm_chart_version" {
-  description = "Version of the Langfuse Helm chart to deploy"
+  description = "Version of the Langfuse Helm chart to deploy. The AI gateway needs >= 2.3 (written without a patch component so update-langfuse-versions.yml does not rewrite the floor), which wires Redis for spend limits into langfuse.gateway.*."
   type        = string
-  default     = "2.2.5"
+  default     = "2.3.0"
 }
 
 variable "app_version" {
   description = "Langfuse application version (Docker image tag) to deploy, e.g. \"4.83.0\". Defaults to the latest Langfuse release at the time this module version was published. See https://github.com/langfuse/langfuse/releases."
   type        = string
   default     = "4.83.0"
+}
+
+# AI gateway
+variable "enable_ai_gateway" {
+  description = "Deploy the Langfuse AI gateway behind Azure Application Gateway on gateway_domain with its own TLS certificate (unless reusing ssl_certificate_key_vault_secret_id) and Azure DNS A record. Requires langfuse_helm_chart_version >= 2.3."
+  type        = bool
+  default     = false
+}
+
+variable "gateway_domain" {
+  description = "Domain name for the Langfuse AI gateway. Defaults to gateway.<domain>. Must be a subdomain of domain so its A record can be created in the module's Azure DNS zone."
+  type        = string
+  default     = null
+
+  validation {
+    # Ternary instead of ||: Terraform 1.3 does not short-circuit logical
+    # operators, so trimspace() on the null default would error.
+    condition     = var.gateway_domain == null ? true : (trimspace(var.gateway_domain) == var.gateway_domain && can(regex("^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$", var.gateway_domain)))
+    error_message = "gateway_domain must be a valid non-empty hostname without leading or trailing whitespace or dots."
+  }
+}
+
+variable "gateway_ssl_certificate_key_vault_secret_id" {
+  description = "Versionless Key Vault secret ID of a PKCS#12 certificate for the AI gateway HTTPS listener on gateway_domain when enable_ai_gateway is true. If unset, falls back to ssl_certificate_key_vault_secret_id when configured (which must then also cover gateway_domain); otherwise a dedicated self-signed certificate is created in Key Vault."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.gateway_ssl_certificate_key_vault_secret_id == "" || can(regex("^https://[^/]+/secrets/[^/]+(/[^/]+)?/?$", var.gateway_ssl_certificate_key_vault_secret_id))
+    error_message = "gateway_ssl_certificate_key_vault_secret_id must be empty or a Key Vault secret URI such as https://<vault>.vault.azure.net/secrets/<name>."
+  }
 }
 
 variable "additional_env" {

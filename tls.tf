@@ -131,3 +131,57 @@ moved {
   from = azurerm_key_vault_certificate.this
   to   = azurerm_key_vault_certificate.this[0]
 }
+
+resource "azurerm_key_vault_certificate" "gateway" {
+  count        = local.create_gateway_self_signed_cert ? 1 : 0
+  name         = "${module.naming.key_vault_certificate.name}-gateway"
+  key_vault_id = azurerm_key_vault.this.id
+
+  certificate_policy {
+    issuer_parameters {
+      name = "Self"
+    }
+
+    key_properties {
+      exportable = true
+      key_size   = 2048
+      key_type   = "RSA"
+      reuse_key  = true
+    }
+
+    lifetime_action {
+      action {
+        action_type = "AutoRenew"
+      }
+
+      trigger {
+        days_before_expiry = 30
+      }
+    }
+
+    secret_properties {
+      content_type = "application/x-pkcs12"
+    }
+
+    x509_certificate_properties {
+      extended_key_usage = ["1.3.6.1.5.5.7.3.1"]
+
+      key_usage = [
+        "digitalSignature",
+        "keyEncipherment"
+      ]
+
+      subject            = "CN=${local.gateway_domain}"
+      validity_in_months = 12
+
+      subject_alternative_names {
+        dns_names = [local.gateway_domain]
+      }
+    }
+  }
+
+  depends_on = [
+    time_sleep.key_vault_rbac_propagation,
+    azurerm_dns_zone.this
+  ]
+}

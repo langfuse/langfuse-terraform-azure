@@ -159,6 +159,28 @@ resource "azurerm_application_gateway" "this" {
     ), 0)
   }
 
+  dynamic "ssl_certificate" {
+    for_each = local.use_dedicated_gateway_ssl_cert ? [1] : []
+    content {
+      name = "${var.name}-gateway"
+      key_vault_secret_id = element(concat(
+        var.gateway_ssl_certificate_key_vault_secret_id != "" ? [var.gateway_ssl_certificate_key_vault_secret_id] : [],
+        azurerm_key_vault_certificate.gateway[*].versionless_secret_id,
+      ), 0)
+    }
+  }
+
+  # Disable response buffering when the AI gateway is enabled so streaming SSE
+  # responses from LLM providers are forwarded as chunks arrive instead of held
+  # until completion.
+  dynamic "global" {
+    for_each = var.enable_ai_gateway ? [1] : []
+    content {
+      request_buffering_enabled  = true
+      response_buffering_enabled = false
+    }
+  }
+
   backend_address_pool {
     name = "backend-address-pool"
   }

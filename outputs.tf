@@ -31,3 +31,8 @@ output "dns_name_servers" {
   description = "Name servers of the DNS zone, for the delegation step"
   value       = azurerm_dns_zone.this.name_servers
 }
+
+output "gateway_url" {
+  description = "Public HTTPS URL of the Langfuse AI gateway. Null when the AI gateway is disabled."
+  value       = var.enable_ai_gateway ? "https://${local.gateway_domain}" : null
+}
