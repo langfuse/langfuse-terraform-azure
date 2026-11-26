@@ -131,6 +131,29 @@ langfuse:
 %{endif}
 %{endfor}
 EOT
+
+  # Dedicated AGIC Ingress for the AI gateway so web keeps its default
+  # Application Gateway timeout. Gateway streams can run up to 600s, so the
+  # backend request timeout is raised to 620s and health probes check /ready.
+  # Azure Managed Redis uses a publicly trusted CA (DigiCert Global Root G2 /
+  # Microsoft RSA Root CA 2017, both in the UBI9 system trust store), so no
+  # custom Redis CA mount is needed; chart >= 2.3 derives
+  # LANGFUSE_AI_GATEWAY_REDIS_URL (rediss://) and auth from top-level redis.*.
+  gateway_values = !var.enable_ai_gateway ? "" : <<EOT
+langfuse:
+  gateway:
+    enabled: true
+    ingress:
+      enabled: true
+      className: azure-application-gateway
+      annotations:
+        appgw.ingress.kubernetes.io/ssl-redirect: "true"
+        appgw.ingress.kubernetes.io/appgw-ssl-certificate: ${jsonencode(local.gateway_ssl_certificate_name)}
+        appgw.ingress.kubernetes.io/request-timeout: "620"
+        appgw.ingress.kubernetes.io/health-probe-path: "/ready"
+      hosts:
+        - ${jsonencode(local.gateway_domain)}
+EOT
 }
 
 resource "kubernetes_namespace_v1" "langfuse" {
@@ -184,7 +207,8 @@ resource "helm_release" "langfuse" {
     local.clickhouse_values,
     local.ingress_values,
     local.encryption_values,
-    local.additional_env_values
+    local.additional_env_values,
+    local.gateway_values
   ]
 
   depends_on = [
@@ -196,6 +220,25 @@ resource "helm_release" "langfuse" {
     precondition {
       condition     = var.external_clickhouse == null || var.external_clickhouse_password != ""
       error_message = "external_clickhouse_password must be set when external_clickhouse is configured."
+    }
+
+    precondition {
+      condition = !var.enable_ai_gateway ? true : (
+        try(tonumber(regex("^(\\d+)\\.(\\d+)", var.langfuse_helm_chart_version)[0]), 99) > 2 ||
+        (try(tonumber(regex("^(\\d+)\\.(\\d+)", var.langfuse_helm_chart_version)[0]), 99) == 2 &&
+        try(tonumber(regex("^(\\d+)\\.(\\d+)", var.langfuse_helm_chart_version)[1]), 99) >= 3)
+      )
+      error_message = "The AI gateway needs langfuse_helm_chart_version >= 2.3, which wires Redis for spend limits into langfuse.gateway.*. Helm ignores unknown values silently, so an older chart would deploy without gateway Redis or without the gateway."
+    }
+
+    precondition {
+      condition     = !var.enable_ai_gateway ? true : lower(local.gateway_domain) != lower(var.domain)
+      error_message = "gateway_domain must be different from domain."
+    }
+
+    precondition {
+      condition     = !var.enable_ai_gateway ? true : (endswith(lower(local.gateway_domain), ".${lower(var.domain)}") && local.gateway_dns_record_name != "")
+      error_message = "gateway_domain must be a subdomain of domain, because the module creates DNS records in the Azure DNS zone for domain."
     }
   }
 }

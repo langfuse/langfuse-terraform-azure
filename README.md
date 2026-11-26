@@ -57,11 +57,15 @@ module "langfuse" {
   use_ddos_protection = true
 
   # Optional: Configure Langfuse Helm chart version
-  langfuse_helm_chart_version = "2.2.5"
+  langfuse_helm_chart_version = "2.3.0"
 
   # Optional: Pin the Langfuse application version. Defaults to the latest
   # release at the time this module version was published.
   app_version = "4.83.0"
+
+  # Optional: Deploy the Langfuse AI gateway on gateway.<domain>
+  # enable_ai_gateway = true
+  # gateway_domain    = "gateway.langfuse.example.com" # Defaults to gateway.<domain>
   
   # Optional: Add additional environment variables
   additional_env = [
@@ -143,10 +147,37 @@ module "langfuse" {
   domain = "langfuse.example.com"
 
   ssl_certificate_key_vault_secret_id = "https://myvault.vault.azure.net/secrets/langfuse-tls"
+
+  # Optional: supply a separate certificate for gateway_domain when
+  # enable_ai_gateway = true (defaults to ssl_certificate_key_vault_secret_id if unset)
+  # gateway_ssl_certificate_key_vault_secret_id = "https://myvault.vault.azure.net/secrets/langfuse-gateway-tls"
 }
 ```
 
-On an existing gateway, `ssl_certificate` is in `lifecycle.ignore_changes`, so Terraform does not retarget the listener after the gateway is created.
+On an existing gateway, `ssl_certificate` is in `lifecycle.ignore_changes`, so Terraform does not retarget the listener or add a new certificate entry after the gateway is created.
+
+## AI Gateway
+
+Set `enable_ai_gateway = true` to deploy the Langfuse AI gateway alongside Langfuse (off by default, requires Helm chart `>= 2.3`).
+
+```hcl
+module "langfuse" {
+  # ...
+  enable_ai_gateway = true
+
+  # Optional: defaults to gateway.<domain>
+  # gateway_domain = "llm.langfuse.example.com"
+}
+```
+
+When enabled, the module:
+
+- Enables `langfuse.gateway` and its AGIC Kubernetes Ingress in the Langfuse Helm chart on `gateway_domain` (`gateway.<domain>` by default), keeping the gateway image tag pinned to `app_version` via `langfuse.image.tag`.
+- Configures the gateway Ingress with a 620s backend request timeout (`appgw.ingress.kubernetes.io/request-timeout: "620"`, to accommodate streaming responses up to 600s), `/ready` health probes (`appgw.ingress.kubernetes.io/health-probe-path: "/ready"`), and HTTPS redirect, while leaving web's Ingress on Application Gateway's default timeout.
+- Disables Application Gateway response buffering (`global.response_buffering_enabled = false`) so streaming SSE responses from LLM providers are forwarded incrementally.
+- Wires spend-limit counters to the module's Azure Managed Redis (`rediss://`) automatically through Helm chart `>= 2.3` (`redis.*`); Azure Managed Redis certificates chain to public root CAs already present in the gateway image's system trust store, so no custom CA bundle mount is needed.
+- Creates an Azure DNS `A` record for `gateway_domain` pointing to the Application Gateway public IP.
+- Configures TLS for `gateway_domain`: if neither `gateway_ssl_certificate_key_vault_secret_id` nor `ssl_certificate_key_vault_secret_id` is set, creates a dedicated self-signed certificate in Key Vault and registers it on Application Gateway (`${var.name}-gateway`). If `ssl_certificate_key_vault_secret_id` is set without `gateway_ssl_certificate_key_vault_secret_id`, reuses that certificate (it must also cover `gateway_domain`). Because `ssl_certificate` is in `lifecycle.ignore_changes` on `azurerm_application_gateway.this`, enabling a separate gateway certificate on an already-created Application Gateway requires either reusing a wildcard/SAN certificate in `var.name` or adding `${var.name}-gateway` to the Application Gateway out of band.
 
 ## Langfuse version
 
@@ -245,6 +276,7 @@ The module creates a complete Langfuse stack with the following Azure components
   - Web Application Firewall (WAF)
   - SSL termination
   - Private endpoint
+  - Optional Langfuse AI gateway Ingress (`gateway.<domain>`) with 620s request timeout, `/ready` health probe, and response buffering disabled for streaming
 - Azure Files CSI Driver for persistent storage
 - Optional DDoS Protection Plan
 - Optional encryption key for LLM API credentials
@@ -315,7 +347,7 @@ The module creates a complete Langfuse stack with the following Azure components
 | redis_sku_name                    | SKU name for Azure Managed Redis                                                                                                                         | string | "Balanced_B3"                 |    no    |
 | redis_high_availability           | Enable high availability for Redis                                                                                                                       | bool   | true                          |    no    |
 | app_gateway_capacity              | Capacity for Application Gateway                                                                                                                         | number | 1                             |    no    |
-| ssl_certificate_key_vault_secret_id | Versionless Key Vault secret ID of a PKCS#12 certificate (leaf, key, and CA chain). Empty uses the self-signed certificate.                            | string | `""`                          |    no    |
+| ssl_certificate_key_vault_secret_id | Versionless Key Vault secret ID of a PKCS#12 certificate (leaf, key, and CA chain). Empty uses the self-signed certificate. Must also cover `gateway_domain` if `enable_ai_gateway` is true and `gateway_ssl_certificate_key_vault_secret_id` is unset. | string | `""` | no |
 | use_ddos_protection               | Whether to use DDoS protection                                                                                                                           | bool   | true                          |    no    |
 | clickhouse_replicas               | Number of in-cluster ClickHouse replicas                                                                                                                 | number | 3                             |    no    |
 | clickhouse_keeper_replicas        | Number of ClickHouse Keeper replicas (1, 3 or 5)                                                                                                         | number | 3                             |    no    |
@@ -327,20 +359,24 @@ The module creates a complete Langfuse stack with the following Azure components
 | cert_manager_chart_version        | Version of the cert-manager Helm chart                                                                                                                   | string | "v1.20.2"                     |    no    |
 | external_clickhouse               | Use an external ClickHouse (e.g. ClickHouse Cloud) instead of the in-cluster deployment. See [External ClickHouse](#external-clickhouse-bring-your-own). | object | null                          |    no    |
 | external_clickhouse_password      | Password for the external ClickHouse user                                                                                                                | string | ""                            |    no    |
-| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy                                                                                                             | string | "2.2.5"                       |    no    |
+| langfuse_helm_chart_version       | Version of the Langfuse Helm chart to deploy; AI gateway needs `>= 2.3`                                                                                  | string | "2.3.0"                       |    no    |
 | app_version                       | Langfuse application version (Docker image tag) to deploy. Defaults to the latest release at the time this module version was published.                 | string | "4.83.0"                      |    no    |
+| enable_ai_gateway                 | Deploy the Langfuse AI gateway behind Azure Application Gateway on `gateway_domain` with its own TLS certificate and Azure DNS A record. Requires Helm chart `>= 2.3`. | bool | false | no |
+| gateway_domain                    | Domain name for the Langfuse AI gateway; defaults to `gateway.<domain>`                                                                                  | string | null                          |    no    |
+| gateway_ssl_certificate_key_vault_secret_id | Versionless Key Vault secret ID of a PKCS#12 certificate for `gateway_domain` when `enable_ai_gateway` is true. Falls back to `ssl_certificate_key_vault_secret_id` if configured; otherwise a dedicated self-signed certificate is created. | string | `""` | no |
 | additional_env                    | Additional environment variables for Langfuse                                                                                                            | list   | []                            |    no    |
 
 ## Outputs
 
-| Name                       | Description                                            |
-|----------------------------|--------------------------------------------------------|
-| cluster_name               | The name of the AKS cluster                            |
-| cluster_host               | The host of the AKS cluster                            |
-| cluster_client_certificate | The client certificate for the AKS cluster             |
-| cluster_client_key         | The client key for the AKS cluster                     |
-| cluster_ca_certificate     | The CA certificate for the AKS cluster                 |
-| dns_name_servers           | Name servers of the DNS zone, for the delegation step  |
+| Name                       | Description                                                      |
+|----------------------------|------------------------------------------------------------------|
+| cluster_name               | The name of the AKS cluster                                      |
+| cluster_host               | The host of the AKS cluster                                      |
+| cluster_client_certificate | The client certificate for the AKS cluster                       |
+| cluster_client_key         | The client key for the AKS cluster                               |
+| cluster_ca_certificate     | The CA certificate for the AKS cluster                           |
+| dns_name_servers           | Name servers of the DNS zone, for the delegation step            |
+| gateway_url                | Public HTTPS URL of the Langfuse AI gateway (null when disabled) |
 
 ## Support
 
